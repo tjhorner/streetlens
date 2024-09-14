@@ -7,7 +7,7 @@ import { TrackSegment, TrackPoint } from "../vendor/gpx" // or the appropriate m
  * @returns A new TrackSegment with smoothed TrackPoints.
  */
 export function smoothTrackSegment(trackSegment: TrackSegment): TrackSegment {
-  const maxSpeedThreshold = 18 // meters per second (adjust based on expected activity speed)
+  const maxSpeedThreshold = 17.8 // meters per second (adjust based on expected activity speed)
 
   const originalTrackPoints = trackSegment.trkpt
   const cleanedTrackPoints: TrackPoint[] = []

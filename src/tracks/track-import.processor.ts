@@ -3,7 +3,7 @@ import { TracksService } from "./tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
 import { Feature, LineString } from "typeorm"
 import { execFile } from "child_process"
-import { parseGPX } from "src/vendor/gpx"
+import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
 import { createReadStream } from "fs"
 import * as crypto from "crypto"
 import * as fs from "fs/promises"
@@ -93,10 +93,27 @@ export class TrackImportProcessor extends WorkerHost {
     const gpxFile = await fs.readFile(gpxPath, "utf-8")
 
     const gpxData = parseGPX(gpxFile)
+
     const segment = gpxData.getSegment(0, 0)
     const smoothedSegment = smoothTrackSegment(segment)
 
-    return smoothedSegment.toGeoJSON()
+    const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
+
+    const points = simplifiedPoints.filter(
+      (point) => point.distance === undefined || point.distance >= 1,
+    )
+
+    return {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: points.map((point) => [
+          point.point.getLongitude(),
+          point.point.getLatitude(),
+        ]),
+      },
+    }
   }
 
   private async getCaptureDate(filePath: string): Promise<Date> {
