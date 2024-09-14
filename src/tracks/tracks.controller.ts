@@ -6,9 +6,23 @@ export class TracksController {
   constructor(private readonly tracksService: TracksService) {}
 
   @Get()
-  async list(@Query("start") start?: string, @Query("end") end?: string) {
+  async list(
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+    @Query("format") format?: string,
+  ) {
     const tracks = await this.tracksService.list({ start, end })
-    return this.tracksService.toGeoJSON(tracks)
+
+    if (format === "geojson") {
+      return this.tracksService.toGeoJSON(tracks)
+    }
+
+    return tracks.map((track) => ({
+      id: track.id,
+      captureDate: track.captureDate,
+      filePath: track.filePath,
+      fileHash: track.fileHash,
+    }))
   }
 
   @Post("import")
