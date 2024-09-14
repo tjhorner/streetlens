@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq"
 import { TracksService } from "./tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
-import { FeatureCollection, LineString } from "typeorm"
+import { Feature, LineString } from "typeorm"
 import { execFile } from "child_process"
 import { parseGPX } from "src/vendor/gpx"
 import { createReadStream } from "fs"
@@ -9,6 +9,7 @@ import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
+import { smoothTrackSegment } from "src/lib/gpx-smooth"
 
 export interface TrackImportPayload {
   filePath: string
@@ -44,19 +45,12 @@ export class TrackImportProcessor extends WorkerHost {
       status: "Processing GPX data",
     })
 
-    let gpxData: FeatureCollection
+    let gpxData: Feature
     try {
       const gpxPath = await this.convertToGpx(job.data.filePath)
-      gpxData = await this.getGpxData(gpxPath)
+      gpxData = await this.processGpxData(gpxPath)
     } catch {
       throw new UnrecoverableError("Failed to process GPX data")
-    }
-
-    const trackFeature = gpxData.features.find(
-      (feat) => feat.geometry.type === "LineString",
-    )
-    if (!trackFeature) {
-      throw new UnrecoverableError("No track found in GPX file")
     }
 
     await job.updateProgress({
@@ -74,7 +68,7 @@ export class TrackImportProcessor extends WorkerHost {
       captureDate,
       filePath: job.data.filePath,
       fileHash: hash,
-      geometry: trackFeature.geometry as LineString,
+      geometry: gpxData.geometry as LineString,
     })
 
     return {
@@ -95,13 +89,14 @@ export class TrackImportProcessor extends WorkerHost {
     return `${filePath}.gpx`
   }
 
-  private async getGpxData(gpxPath): Promise<FeatureCollection> {
+  private async processGpxData(gpxPath: string): Promise<Feature> {
     const gpxFile = await fs.readFile(gpxPath, "utf-8")
 
     const gpxData = parseGPX(gpxFile)
-    const featureCollection = gpxData.toGeoJSON()
+    const segment = gpxData.getSegment(0, 0)
+    const smoothedSegment = smoothTrackSegment(segment)
 
-    return featureCollection
+    return smoothedSegment.toGeoJSON()
   }
 
   private async getCaptureDate(filePath: string): Promise<Date> {
