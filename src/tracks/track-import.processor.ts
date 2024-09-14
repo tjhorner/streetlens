@@ -64,7 +64,7 @@ export class TrackImportProcessor extends WorkerHost {
       status: "Finalizing import",
     })
 
-    await this.tracksService.create({
+    const track = await this.tracksService.create({
       name: path.basename(job.data.filePath),
       captureDate,
       filePath: job.data.filePath,
@@ -72,7 +72,9 @@ export class TrackImportProcessor extends WorkerHost {
       geometry: trackFeature.geometry as LineString,
     })
 
-    return {}
+    return {
+      id: track.id,
+    }
   }
 
   private async getGpxData(filePath: string): Promise<FeatureCollection> {
