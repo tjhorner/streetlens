@@ -12,6 +12,7 @@ import { forwardRef, Inject } from "@nestjs/common"
 
 export interface TrackImportPayload {
   filePath: string
+  force?: boolean
 }
 
 export const TRACK_IMPORT_QUEUE = "track-import"
@@ -31,9 +32,12 @@ export class TrackImportProcessor extends WorkerHost {
     })
 
     const hash = await this.getFileHash(job.data.filePath)
-    const alreadyExists = await this.tracksService.existsByFileHash(hash)
-    if (alreadyExists) {
-      throw new UnrecoverableError("File has already been processed")
+
+    if (!job.data.force) {
+      const alreadyExists = await this.tracksService.existsByFileHash(hash)
+      if (alreadyExists) {
+        throw new UnrecoverableError("File has already been processed")
+      }
     }
 
     await job.updateProgress({
@@ -42,7 +46,8 @@ export class TrackImportProcessor extends WorkerHost {
 
     let gpxData: FeatureCollection
     try {
-      gpxData = await this.getGpxData(job.data.filePath)
+      const gpxPath = await this.convertToGpx(job.data.filePath)
+      gpxData = await this.getGpxData(gpxPath)
     } catch {
       throw new UnrecoverableError("Failed to process GPX data")
     }
@@ -64,7 +69,7 @@ export class TrackImportProcessor extends WorkerHost {
       status: "Finalizing import",
     })
 
-    const track = await this.tracksService.create({
+    const track = await this.tracksService.upsert({
       name: path.basename(job.data.filePath),
       captureDate,
       filePath: job.data.filePath,
@@ -77,23 +82,25 @@ export class TrackImportProcessor extends WorkerHost {
     }
   }
 
-  private async getGpxData(filePath: string): Promise<FeatureCollection> {
-    const outPath = path.join("/tmp", path.basename(filePath))
+  private async convertToGpx(filePath: string): Promise<string> {
     await this.runCmd("gopro2gpx", [
       "--skip-dop",
       "--dop-limit",
       "500",
       "-s",
       filePath,
-      outPath,
+      filePath,
     ])
 
-    const gpxFile = await fs.readFile(`${outPath}.gpx`, "utf-8")
+    return `${filePath}.gpx`
+  }
+
+  private async getGpxData(gpxPath): Promise<FeatureCollection> {
+    const gpxFile = await fs.readFile(gpxPath, "utf-8")
 
     const gpxData = parseGPX(gpxFile)
     const featureCollection = gpxData.toGeoJSON()
 
-    await fs.unlink(`${outPath}.gpx`)
     return featureCollection
   }
 

@@ -56,18 +56,36 @@ export class TracksService {
     return this.tracksRepository.save(track)
   }
 
+  async upsert(track: DeepPartial<Track>) {
+    const existing = await this.tracksRepository.findOne({
+      where: { filePath: track.filePath },
+    })
+
+    if (existing) {
+      return this.tracksRepository.save({
+        ...existing,
+        ...track,
+      })
+    }
+
+    return this.tracksRepository.save(track)
+  }
+
   async existsByFileHash(fileHash: string): Promise<boolean> {
     const count = await this.tracksRepository.count({ where: { fileHash } })
     return count > 0
   }
 
-  async startImport(filePath: string) {
+  async startImport(filePath: string, force: boolean = false) {
     const exists = fs.existsSync(filePath)
     if (!exists) {
       throw new Error(`File not found: ${filePath}`)
     }
 
-    return this.trackImportQueue.add(path.basename(filePath), { filePath })
+    return this.trackImportQueue.add(path.basename(filePath), {
+      filePath,
+      force,
+    })
   }
 
   toGeoJSON(tracks: Track[]) {

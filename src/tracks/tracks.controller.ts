@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { TracksService } from "./tracks.service"
 
 @Controller("tracks")
@@ -26,8 +26,11 @@ export class TracksController {
   }
 
   @Post("import")
-  async import(@Query("filePath") filePath: string) {
-    const job = await this.tracksService.startImport(filePath)
+  async import(
+    @Body("filePath") filePath: string,
+    @Body("force") force?: boolean,
+  ) {
+    const job = await this.tracksService.startImport(filePath, force)
     return job.id
   }
 }
