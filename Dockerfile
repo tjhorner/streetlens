@@ -2,7 +2,7 @@
 # BUILD FOR LOCAL DEVELOPMENT
 ###################
 
-FROM node:current AS development
+FROM node:current-alpine AS development
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -25,7 +25,7 @@ USER node
 # BUILD FOR PRODUCTION
 ###################
 
-FROM node:current AS build
+FROM node:current-alpine AS build
 
 WORKDIR /usr/src/app
 
@@ -51,9 +51,9 @@ USER node
 # PRODUCTION
 ###################
 
-FROM node:current AS production
+FROM node:current-alpine AS production
 
-RUN apt update && apt-get install -y pipx ffmpeg
+RUN apk add pipx ffmpeg git
 RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx
 ENV PATH="$PATH:/root/.local/bin"
 
