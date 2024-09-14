@@ -40,7 +40,13 @@ export class TrackImportProcessor extends WorkerHost {
       status: "Processing GPX data",
     })
 
-    const gpxData = await this.getGpxData(job.data.filePath)
+    let gpxData: FeatureCollection
+    try {
+      gpxData = await this.getGpxData(job.data.filePath)
+    } catch {
+      throw new UnrecoverableError("Failed to process GPX data")
+    }
+
     const trackFeature = gpxData.features.find(
       (feat) => feat.geometry.type === "LineString",
     )

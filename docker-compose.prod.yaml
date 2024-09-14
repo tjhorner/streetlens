@@ -1,0 +1,30 @@
+services:
+  streetlens:
+    image: ghcr.io/tjhorner/streetlens:main
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      REDIS_HOST: redis
+    ports:
+      - "3000:3000"
+
+  redis:
+    image: redis:7
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgis/postgis:15-3.4
+    expose:
+      - "5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  redis_data:
