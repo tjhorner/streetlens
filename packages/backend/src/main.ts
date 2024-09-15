@@ -8,12 +8,12 @@ async function bootstrap() {
   app.setGlobalPrefix("api")
 
   if (process.env.FRONTEND_ROOT && existsSync(process.env.FRONTEND_ROOT)) {
+    console.log(`Serving frontend from ${process.env.FRONTEND_ROOT}`)
     app.use(
       sirv(process.env.FRONTEND_ROOT, {
         etag: true,
         gzip: true,
         brotli: true,
-        extensions: [],
         setHeaders: (res, pathname) => {
           if (
             pathname.startsWith(`/_app/immutable`) &&

@@ -2,6 +2,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
   OnApplicationBootstrap,
 } from "@nestjs/common"
 import * as chokidar from "chokidar"
@@ -11,13 +12,14 @@ import { ImportDirectory } from "./import-directory.entity"
 
 @Injectable()
 export class FileWatcherService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(FileWatcherService.name)
   private readonly watchers: Record<string, chokidar.FSWatcher> = {}
 
   constructor(
     @Inject(forwardRef(() => ImportDirectoriesService))
     private readonly importDirectoryService: ImportDirectoriesService,
 
-    private eventEmitter: EventEmitter2,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   onApplicationBootstrap() {
@@ -26,9 +28,8 @@ export class FileWatcherService implements OnApplicationBootstrap {
 
   @OnEvent("importDirectory.created")
   async onImportDirectoryCreated(importDirectory: ImportDirectory) {
-    console.log(
-      "Watching new directory, running initial import",
-      importDirectory.directoryPath,
+    this.logger.log(
+      `Watching new import directory: ${importDirectory.directoryPath}`,
     )
 
     this.watch(importDirectory.directoryPath, false)
@@ -38,7 +39,10 @@ export class FileWatcherService implements OnApplicationBootstrap {
     const importDirectories = await this.importDirectoryService.list()
 
     for (const importDirectory of importDirectories) {
-      console.log("Watching", importDirectory.directoryPath)
+      this.logger.log(
+        `Watching import directory: ${importDirectory.directoryPath}`,
+      )
+
       this.watch(importDirectory.directoryPath)
     }
   }
