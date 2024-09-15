@@ -30,7 +30,11 @@ export class TracksService {
   list(filters: TrackFilters = {}): Promise<Track[]> {
     const query = this.tracksRepository.createQueryBuilder("track")
 
-    if (filters.start > filters.end) {
+    if (
+      filters.start &&
+      filters.end &&
+      new Date(filters.start) > new Date(filters.end)
+    ) {
       throw new HttpException("start must be less than or equal to end", 400)
     }
 
