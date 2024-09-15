@@ -9,9 +9,10 @@ export class TracksController {
   async list(
     @Query("start") start?: string,
     @Query("end") end?: string,
+    @Query("bbox") bbox?: string,
     @Query("format") format?: string,
   ) {
-    const tracks = await this.tracksService.list({ start, end })
+    const tracks = await this.tracksService.list({ start, end, bbox })
 
     if (format === "geojson") {
       return this.tracksService.toGeoJSON(tracks)

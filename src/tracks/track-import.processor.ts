@@ -49,8 +49,8 @@ export class TrackImportProcessor extends WorkerHost {
     try {
       const gpxPath = await this.convertToGpx(job.data.filePath)
       gpxData = await this.processGpxData(gpxPath)
-    } catch {
-      throw new UnrecoverableError("Failed to process GPX data")
+    } catch (e: any) {
+      throw new UnrecoverableError(`Failed to process GPX data: ${e.message}`)
     }
 
     await job.updateProgress({
@@ -98,10 +98,13 @@ export class TrackImportProcessor extends WorkerHost {
     const smoothedSegment = smoothTrackSegment(segment)
 
     const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
-
     const points = simplifiedPoints.filter(
       (point) => point.distance === undefined || point.distance >= 1,
     )
+
+    if (points.length < 5) {
+      throw new Error("Cleaned GPX yielded insignificant data")
+    }
 
     return {
       type: "Feature",

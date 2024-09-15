@@ -14,6 +14,7 @@ import * as path from "node:path"
 export interface TrackFilters {
   start?: string
   end?: string
+  bbox?: string
 }
 
 @Injectable()
@@ -43,6 +44,17 @@ export class TracksService {
       query.andWhere("track.captureDate <= :end", {
         end: new Date(filters.end),
       })
+    }
+
+    if (filters.bbox) {
+      const [minLon, minLat, maxLon, maxLat] = filters.bbox
+        .split(",")
+        .map(Number)
+
+      query.andWhere(
+        "ST_Intersects(track.geometry, ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326))",
+        { minLon, minLat, maxLon, maxLat },
+      )
     }
 
     return query.getMany()
