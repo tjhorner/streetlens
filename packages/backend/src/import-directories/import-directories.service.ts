@@ -5,7 +5,7 @@ import { Repository } from "typeorm"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 
 @Injectable()
-export class ImportDirectoryService {
+export class ImportDirectoriesService {
   constructor(
     @InjectRepository(ImportDirectory)
     private importDirectoryRepository: Repository<ImportDirectory>,

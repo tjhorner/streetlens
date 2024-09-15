@@ -1,65 +1,46 @@
-###################
-# BUILD FOR LOCAL DEVELOPMENT
-###################
+### Backend build ###
 
-FROM node:current-alpine AS development
+FROM node:current-alpine AS build-backend
 
-# Create app directory
 WORKDIR /usr/src/app
 
-# Copy application dependency manifests to the container image.
-# A wildcard is used to ensure copying both package.json AND package-lock.json (when available).
-# Copying this first prevents re-running npm install on every code change.
-COPY --chown=node:node package*.json ./
-
-# Install app dependencies using the `npm ci` command instead of `npm install`
+COPY --chown=node:node packages/backend/package*.json ./
 RUN npm ci
-
-# Bundle app source
-COPY --chown=node:node . .
-
-# Use the node user from the image (instead of the root user)
-USER node
-
-###################
-# BUILD FOR PRODUCTION
-###################
-
-FROM node:current-alpine AS build
-
-WORKDIR /usr/src/app
-
-COPY --chown=node:node package*.json ./
-
-# In order to run `npm run build` we need access to the Nest CLI which is a dev dependency. In the previous development stage we ran `npm ci` which installed all dependencies, so we can copy over the node_modules directory from the development image
-COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
-
-COPY --chown=node:node . .
-
-# Run the build command which creates the production bundle
+COPY --chown=node:node packages/backend .
 RUN npm run build
-
-# Set NODE_ENV environment variable
-ENV NODE_ENV=production
-
-# Running `npm ci` removes the existing node_modules directory and passing in --only=production ensures that only the production dependencies are installed. This ensures that the node_modules directory is as optimized as possible
 RUN npm ci --only=production && npm cache clean --force
 
-USER node
+ENV NODE_ENV=production
 
-###################
-# PRODUCTION
-###################
+### Frontend build ###
 
-FROM node:current-alpine AS production
+FROM node:current-alpine AS build-frontend
+
+WORKDIR /usr/src/app
+
+COPY --chown=node:node packages/frontend/package*.json ./
+RUN npm ci
+COPY --chown=node:node packages/frontend .
+RUN npm run build
+RUN npm ci --only=production && npm cache clean --force
+
+### Production image ###
+
+FROM node:current-alpine
 
 RUN apk add pipx ffmpeg git
 RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx
 ENV PATH="$PATH:/root/.local/bin"
 
 # Copy the bundled code from the build stage to the production image
-COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
-COPY --chown=node:node --from=build /usr/src/app/dist ./dist
+COPY --chown=node:node --from=build-backend /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node --from=build-backend /usr/src/app/dist ./dist
+
+# Copy frontend build
+COPY --chown=node:node --from=build-frontend /usr/src/app/build /usr/src/app/www
+
+ENV FRONTEND_ROOT=/usr/src/app/www
+ENV NODE_ENV=production
 
 # Start the server using the production build
 CMD [ "node", "dist/main.js" ]

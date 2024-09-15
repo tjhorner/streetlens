@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common"
-import { AppController } from "./app.controller"
-import { AppService } from "./app.service"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { TracksModule } from "./tracks/tracks.module"
 import { BullModule } from "@nestjs/bullmq"
 import { ExpressAdapter } from "@bull-board/express"
 import { BullBoardModule } from "@bull-board/nestjs"
 import { EventEmitterModule } from "@nestjs/event-emitter"
+import { ImportDirectoriesModule } from "./import-directories/import-directories.module"
+import { TrackWatcherService } from "./track-watcher.service"
 
 @Module({
   imports: [
@@ -28,8 +28,8 @@ import { EventEmitterModule } from "@nestjs/event-emitter"
       adapter: ExpressAdapter,
     }),
     TracksModule,
+    ImportDirectoriesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [TrackWatcherService],
 })
 export class AppModule {}

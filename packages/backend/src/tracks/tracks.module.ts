@@ -10,14 +10,10 @@ import {
 import { TracksController } from "./tracks.controller"
 import { BullBoardModule } from "@bull-board/nestjs"
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter"
-import { ImportDirectory } from "./import-directory.entity"
-import { FileWatcherService } from "./file-watcher.service"
-import { ImportDirectoryService } from "./import-directory.service"
-import { ImportDirectoriesController } from "./import-directories.controller"
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Track, ImportDirectory]),
+    TypeOrmModule.forFeature([Track]),
     BullModule.registerQueue({
       name: TRACK_IMPORT_QUEUE,
     }),
@@ -26,12 +22,8 @@ import { ImportDirectoriesController } from "./import-directories.controller"
       adapter: BullMQAdapter,
     }),
   ],
-  providers: [
-    TracksService,
-    ImportDirectoryService,
-    TrackImportProcessor,
-    FileWatcherService,
-  ],
-  controllers: [TracksController, ImportDirectoriesController],
+  providers: [TracksService, TrackImportProcessor],
+  controllers: [TracksController],
+  exports: [TracksService],
 })
 export class TracksModule {}

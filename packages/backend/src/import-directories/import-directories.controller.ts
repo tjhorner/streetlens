@@ -1,11 +1,11 @@
 import { Body, Controller, Inject, Post } from "@nestjs/common"
-import { ImportDirectoryService } from "./import-directory.service"
+import { ImportDirectoriesService } from "./import-directories.service"
 
 @Controller("directories")
 export class ImportDirectoriesController {
   constructor(
-    @Inject(ImportDirectoryService)
-    private readonly importDirectoryService: ImportDirectoryService,
+    @Inject(ImportDirectoriesService)
+    private readonly importDirectoryService: ImportDirectoriesService,
   ) {}
 
   @Post()
