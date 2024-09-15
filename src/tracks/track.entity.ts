@@ -30,6 +30,7 @@ export class Track {
     return {
       type: "Feature",
       properties: {
+        id: this.id,
         name: this.name,
         captureDate: this.captureDate,
         filePath: this.filePath,
