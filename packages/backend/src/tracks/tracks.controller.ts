@@ -91,9 +91,13 @@ export class TracksController {
   @Get(":id/download")
   async download(@Param("id", ParseIntPipe) id: number) {
     const track = await this.tracksService.get(id)
+
     const name = path.basename(track.filePath)
+    const size = fs.statSync(track.filePath).size
+
     return new StreamableFile(fs.createReadStream(track.filePath), {
       disposition: `attachment; filename="${name}"`,
+      length: size,
     })
   }
 }
