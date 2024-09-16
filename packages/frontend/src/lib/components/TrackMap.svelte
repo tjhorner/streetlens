@@ -274,6 +274,10 @@
     margin-bottom: 0.5em;
   }
 
+  .input-group button {
+    background-color: none !important;
+  }
+
   .filters label {
     font-weight: bold;
   }
