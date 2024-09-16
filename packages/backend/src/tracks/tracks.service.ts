@@ -68,7 +68,7 @@ export class TracksService {
     return this.trackImportQueue.getJobs(
       state ?? ["wait", "waiting", "active", "completed", "failed", "paused"],
       0,
-      limit,
+      limit - 1,
     )
   }
 

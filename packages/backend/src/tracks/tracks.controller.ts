@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common"
+import {
+  Body,
+  Controller,
+  Get,
+  ParseIntPipe,
+  Post,
+  Query,
+} from "@nestjs/common"
 import { TracksService } from "./tracks.service"
 import { JobType } from "bullmq"
 
@@ -29,7 +36,7 @@ export class TracksController {
 
   @Get("imports")
   async listImports(
-    @Query("limit") limit: number = 10,
+    @Query("limit", ParseIntPipe) limit: number = 10,
     @Query("state") state?: JobType,
   ) {
     const jobs = await this.tracksService.listImports(limit, state)

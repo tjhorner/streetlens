@@ -9,7 +9,7 @@ import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
-import { smoothTrackSegment } from "src/lib/gpx-smooth"
+import { smoothTrackSegment } from "src/tracks/gpx-smooth"
 
 export interface TrackImportPayload {
   filePath: string

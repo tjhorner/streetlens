@@ -29,8 +29,8 @@ export class Track {
   toGeoJSON(): Feature {
     return {
       type: "Feature",
+      id: this.id,
       properties: {
-        id: this.id,
         name: this.name,
         captureDate: this.captureDate,
         filePath: this.filePath,
