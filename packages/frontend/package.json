@@ -22,6 +22,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@egjs/svelte-view360": "^4.0.0-beta.7",
 		"@turf/bbox": "^7.1.0",
 		"devalue": "^5.0.0",
 		"just-flush": "^2.3.0",

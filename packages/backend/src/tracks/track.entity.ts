@@ -3,8 +3,10 @@ import {
   Entity,
   Feature,
   LineString,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm"
+import { TrackImage } from "./track-image.entity"
 
 @Entity()
 export class Track {
@@ -25,6 +27,9 @@ export class Track {
 
   @Column("geometry")
   geometry: LineString
+
+  @OneToMany(() => TrackImage, (image) => image.track)
+  images: TrackImage[]
 
   toGeoJSON(): Feature {
     return {

@@ -25,7 +25,6 @@ export class TracksController {
     @Query("format") format?: string,
   ) {
     const tracks = await this.tracksService.list({ start, end, bbox })
-
     if (format === "geojson") {
       return this.tracksService.toGeoJSON(tracks)
     }
@@ -63,6 +62,12 @@ export class TracksController {
     return job.id
   }
 
+  @Post("process-missing-images")
+  async processMissingImages() {
+    const jobs = await this.tracksService.processMissingImages()
+    return jobs.map((job) => job.id)
+  }
+
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
     const track = await this.tracksService.get(id)
@@ -72,6 +77,25 @@ export class TracksController {
       filePath: track.filePath,
       fileHash: track.fileHash,
     }
+  }
+
+  @Get(":id/images")
+  async getImages(
+    @Param("id", ParseIntPipe) id: number,
+    @Query("format") format?: string,
+  ) {
+    const images = await this.tracksService.getImages(id)
+    if (format === "geojson") {
+      return this.tracksService.toGeoJSON(images)
+    }
+
+    return images.map((image) => ({
+      id: image.id,
+      sequenceNumber: image.sequenceNumber,
+      captureDate: image.captureDate,
+      location: image.location,
+      heading: image.heading,
+    }))
   }
 
   @Get(":id/geojson")

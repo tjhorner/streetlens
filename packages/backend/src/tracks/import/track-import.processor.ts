@@ -1,16 +1,16 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
-import { TracksService } from "./tracks.service"
+import { TracksService } from "../tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
 import { Feature, LineString } from "typeorm"
-import { execFile } from "child_process"
 import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
 import { createReadStream } from "fs"
 import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
-import { smoothTrackSegment } from "src/tracks/gpx-smooth"
+import { smoothTrackSegment } from "src/tracks/import/gpx-smooth"
 import { EventEmitter2 } from "@nestjs/event-emitter"
+import { runCmd } from "src/util/run-command"
 
 export interface TrackImportPayload {
   filePath: string
@@ -92,7 +92,7 @@ export class TrackImportProcessor extends WorkerHost {
   }
 
   private async convertToGpx(filePath: string, job: Job): Promise<string> {
-    const { stdout, stderr } = await this.runCmd("gopro2gpx", [
+    const { stdout, stderr } = await runCmd("gopro2gpx", [
       "--skip-dop",
       "--dop-limit",
       "500",
@@ -144,7 +144,7 @@ export class TrackImportProcessor extends WorkerHost {
   }
 
   private async getCaptureDate(filePath: string): Promise<Date> {
-    const { stdout } = await this.runCmd("ffprobe", [
+    const { stdout } = await runCmd("ffprobe", [
       "-v",
       "quiet",
       "-print_format",
@@ -161,20 +161,6 @@ export class TrackImportProcessor extends WorkerHost {
 
     const { birthtime } = await fs.stat(filePath)
     return birthtime
-  }
-
-  private runCmd(command: string, args: string[] = []) {
-    return new Promise<{ stdout: string; stderr: string }>(
-      (resolve, reject) => {
-        execFile(command, args, (error, stdout, stderr) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve({ stdout, stderr })
-          }
-        })
-      },
-    )
   }
 
   private getFileHash(filePath: string): Promise<string> {

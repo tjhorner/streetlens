@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common"
 import { NotificationTarget } from "./notification-target.entity"
 import { InjectRepository } from "@nestjs/typeorm"
 import { Repository } from "typeorm"
-import { execFile } from "child_process"
 import { EventEmitter2 } from "@nestjs/event-emitter"
+import { runCmd } from "src/util/run-command"
 
 export type NotificationType = "success" | "error"
 
@@ -42,20 +42,6 @@ export class NotificationsService {
   }
 
   private async sendToUrls(urls: string[], title: string, message: string) {
-    return this.runCmd("apprise", ["-t", title, "-b", message, ...urls])
-  }
-
-  private runCmd(command: string, args: string[] = []) {
-    return new Promise<{ stdout: string; stderr: string }>(
-      (resolve, reject) => {
-        execFile(command, args, (error, stdout, stderr) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve({ stdout, stderr })
-          }
-        })
-      },
-    )
+    return runCmd("apprise", ["-t", title, "-b", message, ...urls])
   }
 }

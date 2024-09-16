@@ -30,6 +30,7 @@ FROM node:current-alpine
 
 RUN apk add pipx ffmpeg git
 RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx
+RUN pipx install git+https://github.com/tjhorner/mapillary_tools
 RUN pipx install apprise
 ENV PATH="$PATH:/root/.local/bin"
 

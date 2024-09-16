@@ -1,5 +1,5 @@
 // Import necessary classes (adjust the import path as needed)
-import { TrackSegment, TrackPoint } from "../vendor/gpx" // or the appropriate module path
+import { TrackSegment, TrackPoint } from "../../vendor/gpx" // or the appropriate module path
 
 /**
  * Smooths a GPX track segment by removing or correcting improbable points caused by unreliable GPS data.

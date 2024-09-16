@@ -6,6 +6,7 @@
     MapLibre,
     GeoJSON,
     LineLayer,
+    CircleLayer,
     Control,
     Popup,
     type LayerClickInfo,
@@ -13,6 +14,7 @@
   import flush from "just-flush"
   import DateFilter from "./DateFilter.svelte"
   import Legend from "./Legend.svelte"
+  import View360, { EquirectProjection } from "@egjs/svelte-view360"
 
   let selectedTracks: FeatureCollection | undefined
   let popupOpen = false
@@ -22,6 +24,12 @@
 
   let map: maplibregl.Map
   let allTracks: FeatureCollection = {
+    type: "FeatureCollection",
+    features: [],
+  }
+
+  let selectedImage: Feature | undefined
+  let trackImages: FeatureCollection = {
     type: "FeatureCollection",
     features: [],
   }
@@ -48,6 +56,7 @@
 
   async function load() {
     selectedTracks = undefined
+    selectedImage = undefined
 
     const params = new URLSearchParams({
       format: "geojson",
@@ -73,11 +82,21 @@
       maxDate = Math.max(maxDate, track.properties.captureDate)
     })
 
+    if (minDate === maxDate) {
+      minDate = maxDate - 1
+    }
+
     if (filters.start.getTime() === 0) {
       filters.start = new Date(minDate)
     }
 
     allTracks = tracks
+  }
+
+  async function loadImages(trackId: any) {
+    selectedImage = undefined
+    const response = await fetch(`/api/tracks/${trackId}/images?format=geojson`)
+    trackImages = (await response.json()) as FeatureCollection
   }
 
   function handleSelectFeature(event: CustomEvent<LayerClickInfo>) {
@@ -124,7 +143,6 @@
   bind:map
   style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
   class="full-map"
-  standardControls
 >
   <Control position="top-right">
     <div class="control-group">
@@ -151,6 +169,40 @@
       </div>
     </div>
   </Control>
+
+  {#if selectedImage}
+    <Control position="bottom-left">
+      {@const projection = new EquirectProjection({
+        src: `/api/images/${selectedImage.id}.jpg`,
+      })}
+
+      <View360 {projection} />
+    </Control>
+  {/if}
+
+  {#if trackImages.features.length > 0}
+    <GeoJSON id="images" data={trackImages}>
+      <CircleLayer
+        id="images"
+        minzoom={14}
+        manageHoverState
+        hoverCursor="pointer"
+        on:click={(event) => {
+          selectedImage = event.detail.features[0]
+        }}
+        paint={{
+          "circle-radius": 10,
+          "circle-color": "#FF0000",
+          "circle-opacity": [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            1,
+            0.5,
+          ],
+        }}
+      />
+    </GeoJSON>
+  {/if}
 
   {#if selectedTracks && popupOpen}
     <GeoJSON id="selected" data={selectedTracks}>
@@ -229,6 +281,10 @@
                           )}
                       >
                         Copy Path
+                      </button>
+
+                      <button on:click={() => loadImages(track.id)}>
+                        Load Images
                       </button>
 
                       <a href={getGpxStudioUrl(track.id)} target="_blank"
