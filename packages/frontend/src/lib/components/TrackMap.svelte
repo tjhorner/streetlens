@@ -12,14 +12,16 @@
   } from "svelte-maplibre"
   import flush from "just-flush"
   import DateFilter from "./DateFilter.svelte"
+  import Legend from "./Legend.svelte"
 
-  let selectedTrack: Feature | undefined
+  let selectedTracks: FeatureCollection | undefined
+  let popupOpen = false
 
   let minDate: number = Number.MAX_SAFE_INTEGER
   let maxDate: number = 0
 
   let map: maplibregl.Map
-  let data: FeatureCollection = {
+  let allTracks: FeatureCollection = {
     type: "FeatureCollection",
     features: [],
   }
@@ -45,6 +47,8 @@
   }
 
   async function load() {
+    selectedTracks = undefined
+
     const params = new URLSearchParams({
       format: "geojson",
       ...flush(serializeFilters()),
@@ -64,6 +68,7 @@
       track.properties.captureDate = new Date(
         track.properties.captureDate
       ).getTime()
+
       minDate = Math.min(minDate, track.properties.captureDate)
       maxDate = Math.max(maxDate, track.properties.captureDate)
     })
@@ -72,35 +77,45 @@
       filters.start = new Date(minDate)
     }
 
-    data = tracks
+    allTracks = tracks
   }
 
   function handleSelectFeature(event: CustomEvent<LayerClickInfo>) {
-    console.log(event)
-
-    const feature = event.detail.features[0]
-    if (!feature) return
-
-    if (selectedTrack) {
-      event.detail.map.setFeatureState(
-        { source: "tracks", id: selectedTrack.id },
-        { selected: false }
-      )
+    const features = event.detail.features
+    if (features.length === 0) {
+      selectedTracks = undefined
+      return
     }
 
-    event.detail.map.setFeatureState(
-      { source: "tracks", id: feature.id },
-      { selected: true }
-    )
+    const sourceFeatures = features
+      .map(
+        (feature) =>
+          allTracks.features.find((track) => track.id === feature.id)!
+      )
+      .sort((a, b) => {
+        return b.properties?.captureDate - a.properties?.captureDate
+      })
 
-    selectedTrack = feature
+    selectedTracks = {
+      type: "FeatureCollection",
+      features: sourceFeatures as any,
+    }
+  }
+
+  function getGpxStudioUrl(id: any) {
+    const files = JSON.stringify([
+      `${window.location.origin}/api/tracks/${id}/gpx`,
+    ])
+    return `https://gpx.studio/app?files=${encodeURIComponent(files)}`
+  }
+
+  function setSelectedFeatureHover(id: any, state = false) {
+    map.setFeatureState({ source: "selected", id }, { hover: state })
   }
 
   onMount(async () => {
-    console.log(map)
     await load()
-
-    const boundingBox = bbox(data)
+    const boundingBox = bbox(allTracks)
     map.fitBounds(boundingBox as any, { padding: 50, duration: 0 })
   })
 </script>
@@ -112,6 +127,10 @@
   standardControls
 >
   <Control position="top-right">
+    <div class="control-group">
+      <Legend start={new Date(minDate)} end={new Date(maxDate)} />
+    </div>
+
     <div class="control-group filters">
       <div class="input-group">
         <label for="from-date">From</label>
@@ -133,60 +152,92 @@
     </div>
   </Control>
 
-  {#if data.features.length > 0}
-    <GeoJSON id="tracks" {data}>
+  {#if selectedTracks && popupOpen}
+    <GeoJSON id="selected" data={selectedTracks}>
       <LineLayer
         id="selected"
+        interactive={false}
         layout={{ "line-cap": "round", "line-join": "round" }}
-        filter={["boolean", ["feature-state", "selected"], false]}
         paint={{
           "line-width": 5,
-          "line-color": "#FF0000",
+          "line-color": [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            "#0000FF",
+            "#FF0000",
+          ],
           "line-opacity": 1,
         }}
       />
+    </GeoJSON>
+  {/if}
 
+  {#if allTracks.features.length > 0}
+    <GeoJSON id="tracks" data={allTracks}>
       <LineLayer
+        id="all"
         manageHoverState
         hoverCursor="pointer"
         layout={{ "line-cap": "round", "line-join": "round" }}
         on:click={handleSelectFeature}
-        filter={["!", ["to-boolean", ["feature-state", "selected"]]]}
         paint={{
-          "line-width": 5,
+          "line-width": 3,
           "line-color": [
             "interpolate",
             ["linear"],
             ["get", "captureDate"],
             minDate,
-            "#004D00",
+            "#002500",
             maxDate,
             "#00FF00",
           ],
           "line-opacity": 1,
         }}
       >
-        <Popup openOn="manual" open={!!selectedTrack} let:data>
-          <table class="track-props">
-            <tbody>
-              <tr>
-                <th>Name</th>
-                <td>{selectedTrack?.properties?.name}</td>
-              </tr>
-              <tr>
-                <th>Capture Date</th>
-                <td
-                  >{new Date(
-                    selectedTrack?.properties?.captureDate
-                  ).toLocaleString()}</td
-                >
-              </tr>
-              <tr>
-                <th>File Path</th>
-                <td>{selectedTrack?.properties?.filePath}</td>
-              </tr>
-            </tbody>
-          </table>
+        <Popup openOn="click" bind:open={popupOpen}>
+          {#if selectedTracks}
+            <table class="track-props">
+              <thead>
+                <tr>
+                  <th>Capture Date</th>
+                  <th>Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each selectedTracks.features as track}
+                  <tr
+                    on:mouseenter={() =>
+                      setSelectedFeatureHover(track.id, true)}
+                    on:mouseleave={() =>
+                      setSelectedFeatureHover(track.id, false)}
+                  >
+                    <td
+                      >{new Date(
+                        track.properties?.captureDate
+                      ).toLocaleString()}</td
+                    >
+                    <td title={track.properties?.filePath}
+                      >{track.properties?.name}</td
+                    >
+                    <td>
+                      <button
+                        on:click={() =>
+                          navigator.clipboard.writeText(
+                            track.properties?.filePath
+                          )}
+                      >
+                        Copy Path
+                      </button>
+
+                      <a href={getGpxStudioUrl(track.id)} target="_blank"
+                        >gpx.studio</a
+                      >
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/if}
         </Popup>
       </LineLayer>
     </GeoJSON>
@@ -202,7 +253,7 @@
   .control-group {
     display: flex;
     flex-direction: column;
-    padding: 0.5em 1em;
+    padding: 0.5em 0.75em;
     background-color: white;
     border-radius: 0.5em;
     box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
@@ -228,9 +279,16 @@
   .track-props th,
   .track-props td {
     padding: 0.5em;
+    border: 1px solid #ccc;
   }
 
   .track-props th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .track-props td {
     text-align: left;
   }
 </style>

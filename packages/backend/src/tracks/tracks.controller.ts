@@ -2,12 +2,15 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   ParseIntPipe,
   Post,
   Query,
+  StreamableFile,
 } from "@nestjs/common"
 import { TracksService } from "./tracks.service"
 import { JobType } from "bullmq"
+import * as fs from "fs"
 
 @Controller("tracks")
 export class TracksController {
@@ -32,6 +35,14 @@ export class TracksController {
       filePath: track.filePath,
       fileHash: track.fileHash,
     }))
+  }
+
+  @Get(":id/gpx")
+  async getGpx(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return new StreamableFile(fs.createReadStream(`${track.filePath}.gpx`), {
+      disposition: `attachment; filename="${track.name}.gpx"`,
+    })
   }
 
   @Get("imports")
