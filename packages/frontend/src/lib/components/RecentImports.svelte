@@ -74,4 +74,19 @@
   tr:hover {
     background-color: #f5f5f5;
   }
+
+  @media (prefers-color-scheme: dark) {
+    th {
+      background-color: #333;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #444;
+    }
+
+    tr:hover {
+      background-color: #555;
+    }
+  }
 </style>

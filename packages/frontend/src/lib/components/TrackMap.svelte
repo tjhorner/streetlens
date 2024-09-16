@@ -122,7 +122,7 @@
 
 <MapLibre
   bind:map
-  style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+  style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
   class="full-map"
   standardControls
 >
@@ -261,6 +261,13 @@
     margin-bottom: 0.5em;
   }
 
+  @media (prefers-color-scheme: dark) {
+    .control-group {
+      background-color: #333;
+      color: white;
+    }
+  }
+
   .input-group {
     display: flex;
     flex-direction: column;
@@ -274,6 +281,7 @@
   .track-props {
     width: 100%;
     border-collapse: collapse;
+    color: black;
   }
 
   .track-props th,
