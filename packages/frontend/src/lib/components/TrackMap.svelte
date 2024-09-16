@@ -160,13 +160,13 @@
         layout={{ "line-cap": "round", "line-join": "round" }}
         paint={{
           "line-width": 5,
-          "line-color": [
+          "line-color": "#FF0000",
+          "line-opacity": [
             "case",
             ["boolean", ["feature-state", "hover"], false],
-            "#0000FF",
-            "#FF0000",
+            1,
+            0,
           ],
-          "line-opacity": 1,
         }}
       />
     </GeoJSON>
