@@ -37,31 +37,6 @@ export class TracksController {
     }))
   }
 
-  @Get(":id")
-  async get(@Param("id", ParseIntPipe) id: number) {
-    const track = await this.tracksService.get(id)
-    return {
-      id: track.id,
-      captureDate: track.captureDate,
-      filePath: track.filePath,
-      fileHash: track.fileHash,
-    }
-  }
-
-  @Get(":id/geojson")
-  async getGeoJSON(@Param("id", ParseIntPipe) id: number) {
-    const track = await this.tracksService.get(id)
-    return track.toGeoJSON()
-  }
-
-  @Get(":id/gpx")
-  async getGpx(@Param("id", ParseIntPipe) id: number) {
-    const track = await this.tracksService.get(id)
-    return new StreamableFile(fs.createReadStream(`${track.filePath}.gpx`), {
-      disposition: `attachment; filename="${track.name}.gpx"`,
-    })
-  }
-
   @Get("imports")
   async listImports(
     @Query("limit", ParseIntPipe) limit: number = 10,
@@ -85,5 +60,30 @@ export class TracksController {
   async import(@Body("path") filePath: string, @Body("force") force?: boolean) {
     const job = await this.tracksService.startImport(filePath, force)
     return job.id
+  }
+
+  @Get(":id")
+  async get(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return {
+      id: track.id,
+      captureDate: track.captureDate,
+      filePath: track.filePath,
+      fileHash: track.fileHash,
+    }
+  }
+
+  @Get(":id/geojson")
+  async getGeoJSON(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return track.toGeoJSON()
+  }
+
+  @Get(":id/gpx")
+  async getGpx(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return new StreamableFile(fs.createReadStream(`${track.filePath}.gpx`), {
+      disposition: `attachment; filename="${track.name}.gpx"`,
+    })
   }
 }
