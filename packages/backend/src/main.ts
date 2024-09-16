@@ -2,10 +2,20 @@ import { NestFactory } from "@nestjs/core"
 import { AppModule } from "./app.module"
 import { existsSync } from "fs"
 import sirv from "sirv"
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
+
   app.setGlobalPrefix("api")
+
+  const config = new DocumentBuilder()
+    .setTitle("Streetlens API")
+    .setVersion("1.0")
+    .build()
+
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup("swagger", app, document)
 
   if (process.env.FRONTEND_ROOT && existsSync(process.env.FRONTEND_ROOT)) {
     console.log(`Serving frontend from ${process.env.FRONTEND_ROOT}`)

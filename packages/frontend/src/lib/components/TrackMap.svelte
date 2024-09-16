@@ -142,47 +142,49 @@
     </div>
   </Control>
 
-  <GeoJSON id="tracks" data={data}>
-    <LineLayer
-      manageHoverState
-      hoverCursor="pointer"
-      layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-      on:click={(e) => selectedTrack = e.detail.features?.[0]?.properties}
-      paint={{
-        'line-width': 5,
-        'line-color': [
-          'case',
-          ['==', ['get', 'name'], selectedTrack?.name ?? ""],
-          '#FF0000',
-          [
-            'interpolate',
-            ['linear'],
-            ['get', 'captureDate'],
-            minDate, '#004D00',
-            maxDate, '#00FF00'
-          ]
-        ],
-        'line-opacity': 1
-      }}
-    >
-      <Popup openOn="click" closeButton let:data>
-        <table class="track-props">
-          <tbody>
-            <tr>
-              <th>Name</th>
-              <td>{selectedTrack?.name}</td>
-            </tr>
-            <tr>
-              <th>Capture Date</th>
-              <td>{new Date(selectedTrack?.captureDate).toLocaleString()}</td>
-            </tr>
-            <tr>
-              <th>File Path</th>
-              <td>{selectedTrack?.filePath}</td>
-            </tr>
-          </tbody>
-        </table>
-      </Popup>
-    </LineLayer>
-  </GeoJSON>
+  {#if data.features.length > 0}
+    <GeoJSON id="tracks" data={data}>
+      <LineLayer
+        manageHoverState
+        hoverCursor="pointer"
+        layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+        on:click={(e) => selectedTrack = e.detail.features?.[0]?.properties}
+        paint={{
+          'line-width': 5,
+          'line-color': [
+            'case',
+            ['==', ['get', 'name'], selectedTrack?.name ?? ""],
+            '#FF0000',
+            [
+              'interpolate',
+              ['linear'],
+              ['get', 'captureDate'],
+              minDate, '#004D00',
+              maxDate, '#00FF00'
+            ]
+          ],
+          'line-opacity': 1
+        }}
+      >
+        <Popup openOn="click" closeButton let:data>
+          <table class="track-props">
+            <tbody>
+              <tr>
+                <th>Name</th>
+                <td>{selectedTrack?.name}</td>
+              </tr>
+              <tr>
+                <th>Capture Date</th>
+                <td>{new Date(selectedTrack?.captureDate).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <th>File Path</th>
+                <td>{selectedTrack?.filePath}</td>
+              </tr>
+            </tbody>
+          </table>
+        </Popup>
+      </LineLayer>
+    </GeoJSON>
+  {/if}
 </MapLibre>

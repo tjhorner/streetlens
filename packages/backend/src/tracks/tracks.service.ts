@@ -7,7 +7,7 @@ import {
   TRACK_IMPORT_QUEUE,
   TrackImportPayload,
 } from "./track-import.processor"
-import { Queue } from "bullmq"
+import { JobType, Queue } from "bullmq"
 import * as fs from "node:fs"
 import * as path from "node:path"
 
@@ -62,6 +62,14 @@ export class TracksService {
     }
 
     return query.getMany()
+  }
+
+  async listImports(limit: number = 10, state?: JobType) {
+    return this.trackImportQueue.getJobs(
+      state ?? ["wait", "waiting", "active", "completed", "failed", "paused"],
+      0,
+      limit,
+    )
   }
 
   async get(id: number): Promise<Track> {
