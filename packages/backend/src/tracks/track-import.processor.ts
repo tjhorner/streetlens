@@ -10,6 +10,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
 import { smoothTrackSegment } from "src/tracks/gpx-smooth"
+import { EventEmitter2 } from "@nestjs/event-emitter"
 
 export interface TrackImportPayload {
   filePath: string
@@ -23,6 +24,7 @@ export class TrackImportProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TracksService))
     private readonly tracksService: TracksService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super()
   }
@@ -69,6 +71,11 @@ export class TrackImportProcessor extends WorkerHost {
       filePath: job.data.filePath,
       fileHash: hash,
       geometry: gpxData.geometry as LineString,
+    })
+
+    this.eventEmitter.emit("track.imported", {
+      id: track.id,
+      name: track.name,
     })
 
     return {

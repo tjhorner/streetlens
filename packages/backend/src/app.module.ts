@@ -7,6 +7,8 @@ import { BullBoardModule } from "@bull-board/nestjs"
 import { EventEmitterModule } from "@nestjs/event-emitter"
 import { ImportDirectoriesModule } from "./import-directories/import-directories.module"
 import { TrackWatcherService } from "./track-watcher.service"
+import { NotificationsModule } from "./notifications/notifications.module"
+import { ImportNotifierService } from "./import-notifier.service"
 
 @Module({
   imports: [
@@ -29,7 +31,8 @@ import { TrackWatcherService } from "./track-watcher.service"
     }),
     TracksModule,
     ImportDirectoriesModule,
+    NotificationsModule,
   ],
-  providers: [TrackWatcherService],
+  providers: [TrackWatcherService, ImportNotifierService],
 })
 export class AppModule {}
