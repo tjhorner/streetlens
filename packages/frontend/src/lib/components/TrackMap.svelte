@@ -216,9 +216,11 @@
                         track.properties?.captureDate
                       ).toLocaleString()}</td
                     >
-                    <td title={track.properties?.filePath}
-                      >{track.properties?.name}</td
-                    >
+                    <td title={track.properties?.filePath}>
+                      <a href={`/api/tracks/${track.id}/download`}
+                        >{track.properties?.name}</a
+                      >
+                    </td>
                     <td>
                       <button
                         on:click={() =>

@@ -11,6 +11,7 @@ import {
 import { TracksService } from "./tracks.service"
 import { JobType } from "bullmq"
 import * as fs from "fs"
+import path from "path"
 
 @Controller("tracks")
 export class TracksController {
@@ -84,6 +85,15 @@ export class TracksController {
     const track = await this.tracksService.get(id)
     return new StreamableFile(fs.createReadStream(`${track.filePath}.gpx`), {
       disposition: `attachment; filename="${track.name}.gpx"`,
+    })
+  }
+
+  @Get(":id/download")
+  async download(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    const name = path.basename(track.filePath)
+    return new StreamableFile(fs.createReadStream(track.filePath), {
+      disposition: `attachment; filename="${name}"`,
     })
   }
 }
