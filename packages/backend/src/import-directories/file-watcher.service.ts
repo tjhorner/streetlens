@@ -18,7 +18,6 @@ export class FileWatcherService implements OnApplicationBootstrap {
   constructor(
     @Inject(forwardRef(() => ImportDirectoriesService))
     private readonly importDirectoryService: ImportDirectoriesService,
-
     private readonly eventEmitter: EventEmitter2,
   ) {}
 

@@ -11,4 +11,18 @@ export class ImportNotifierService {
       `${name} has successfully been imported`,
     )
   }
+
+  @OnEvent("track.importFailure")
+  async onTrackImportFailure({
+    filePath,
+    error,
+  }: {
+    filePath: string
+    error: string
+  }) {
+    await this.notificationsService.sendNotification(
+      `Track Import Failed`,
+      `${filePath} failed to import: ${error}`,
+    )
+  }
 }

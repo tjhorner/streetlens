@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq"
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { TracksService } from "./tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
 import { Feature, LineString } from "typeorm"
@@ -29,6 +29,14 @@ export class TrackImportProcessor extends WorkerHost {
     super()
   }
 
+  @OnWorkerEvent("failed")
+  onFailure(job: Job<TrackImportPayload>, error: Error) {
+    this.eventEmitter.emit("track.importFailure", {
+      filePath: job.data.filePath,
+      error: error.message,
+    })
+  }
+
   async process(job: Job<TrackImportPayload>): Promise<any> {
     await job.updateProgress({
       status: "Obtaining file hash",
@@ -49,7 +57,7 @@ export class TrackImportProcessor extends WorkerHost {
 
     let gpxData: Feature
     try {
-      const gpxPath = await this.convertToGpx(job.data.filePath)
+      const gpxPath = await this.convertToGpx(job.data.filePath, job)
       gpxData = await this.processGpxData(gpxPath)
     } catch (e: any) {
       throw new UnrecoverableError(`Failed to process GPX data: ${e.message}`)
@@ -83,8 +91,8 @@ export class TrackImportProcessor extends WorkerHost {
     }
   }
 
-  private async convertToGpx(filePath: string): Promise<string> {
-    await this.runCmd("gopro2gpx", [
+  private async convertToGpx(filePath: string, job: Job): Promise<string> {
+    const { stdout, stderr } = await this.runCmd("gopro2gpx", [
       "--skip-dop",
       "--dop-limit",
       "500",
@@ -92,6 +100,15 @@ export class TrackImportProcessor extends WorkerHost {
       filePath,
       filePath,
     ])
+
+    await job.log(
+      `gopro2gpx stdout:\n${stdout}\n\ngopro2gpx stderr:\n${stderr}`,
+    )
+
+    const lastLine = stdout.trim().split("\n").pop()
+    if (lastLine.startsWith("Can't create file")) {
+      throw new Error(`Could not convert to GPX: ${lastLine}`)
+    }
 
     return `${filePath}.gpx`
   }
