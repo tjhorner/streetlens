@@ -275,7 +275,7 @@
   }
 
   .input-group button {
-    background-color: none !important;
+    background-color: revert !important;
   }
 
   .filters label {
