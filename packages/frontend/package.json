@@ -25,6 +25,7 @@
 		"@turf/bbox": "^7.1.0",
 		"devalue": "^5.0.0",
 		"just-flush": "^2.3.0",
+		"svelte-french-toast": "^1.2.0",
 		"svelte-maplibre": "^0.9.13"
 	}
 }

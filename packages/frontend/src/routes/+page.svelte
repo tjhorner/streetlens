@@ -2,7 +2,10 @@
   import "../app.css"
   import TrackMap from "$lib/components/TrackMap.svelte"
   import RecentImports from "$lib/components/RecentImports.svelte"
+  import Notifier from "$lib/components/Notifier.svelte"
 </script>
+
+<Notifier />
 
 <div class="split">
   <div class="left"><TrackMap /></div>

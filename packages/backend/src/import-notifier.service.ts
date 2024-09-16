@@ -11,6 +11,7 @@ export class ImportNotifierService {
     await this.notificationsService.sendNotification(
       `Track Imported`,
       `${name} has successfully been imported`,
+      "success",
     )
   }
 
@@ -25,6 +26,7 @@ export class ImportNotifierService {
     await this.notificationsService.sendNotification(
       `Track Import Failed`,
       `${filePath} failed to import: ${error}`,
+      "error",
     )
   }
 }

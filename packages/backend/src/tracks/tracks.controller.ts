@@ -37,6 +37,23 @@ export class TracksController {
     }))
   }
 
+  @Get(":id")
+  async get(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return {
+      id: track.id,
+      captureDate: track.captureDate,
+      filePath: track.filePath,
+      fileHash: track.fileHash,
+    }
+  }
+
+  @Get(":id/geojson")
+  async getGeoJSON(@Param("id", ParseIntPipe) id: number) {
+    const track = await this.tracksService.get(id)
+    return track.toGeoJSON()
+  }
+
   @Get(":id/gpx")
   async getGpx(@Param("id", ParseIntPipe) id: number) {
     const track = await this.tracksService.get(id)
