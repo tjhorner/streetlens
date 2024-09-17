@@ -60,13 +60,13 @@
     load()
   }
 
-  async function load() {
+  async function load(omitFilters = false) {
     selectedTracks = undefined
     selectedImage = undefined
 
     const params = new URLSearchParams({
       format: "geojson",
-      ...flush(serializeFilters()),
+      ...(omitFilters ? {} : flush(serializeFilters())),
     }).toString()
 
     const response = await fetch(`/api/tracks?${params}`)
@@ -206,7 +206,7 @@
     ?.coordinates as [number, number]
 
   onMount(async () => {
-    await load()
+    await load(true)
     const boundingBox = bbox(allTracks)
     map.fitBounds(boundingBox as any, { padding: 50, duration: 0 })
   })
