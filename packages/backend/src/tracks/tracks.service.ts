@@ -15,6 +15,7 @@ import {
   IMAGE_IMPORT_QUEUE,
   ImageImportPayload,
 } from "./import/image-import.processor"
+import { OnEvent } from "@nestjs/event-emitter"
 
 export interface TrackFilters {
   start?: string
@@ -142,6 +143,11 @@ export class TracksService {
       filePath,
       force,
     })
+  }
+
+  @OnEvent("track.imported")
+  handleTrackImported({ id }: { id: number; name: string }) {
+    this.imageImportQueue.add(id.toString(), { trackId: id })
   }
 
   async startImageImport(trackId: number) {

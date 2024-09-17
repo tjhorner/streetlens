@@ -4,6 +4,13 @@
   import { LoadingSpinner } from "@egjs/view360"
   import { createEventDispatcher } from "svelte"
   import { fly } from "svelte/transition"
+  import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
+  import {
+    faArrowLeft,
+    faArrowRight,
+    faTimes,
+    faXmark,
+  } from "@fortawesome/free-solid-svg-icons"
 
   export let imageUrl: string
   export let hasPrevious: boolean = true
@@ -24,13 +31,17 @@
 </script>
 
 <div class="sequence-viewer" transition:fly={{ duration: 500, y: 500 }}>
-  <button class="close" on:click={() => dispatch("close")}>&times;</button>
+  <button class="close" on:click={() => dispatch("close")}>
+    <FontAwesomeIcon icon={faXmark} />
+  </button>
 
   <div class="controls">
-    <button disabled={!hasPrevious} on:click={() => dispatch("previous")}
-      >←</button
-    >
-    <button disabled={!hasNext} on:click={() => dispatch("next")}>→</button>
+    <button disabled={!hasPrevious} on:click={() => dispatch("previous")}>
+      <FontAwesomeIcon icon={faArrowLeft} />
+    </button>
+    <button disabled={!hasNext} on:click={() => dispatch("next")}>
+      <FontAwesomeIcon icon={faArrowRight} />
+    </button>
   </div>
 
   <View360
@@ -55,12 +66,12 @@
   }
 
   .close {
-    aspect-ratio: 1 / 1;
     position: fixed;
     top: 0;
     right: 0;
-    padding: 0.3rem 0.7rem;
-    font-size: 2em;
+    padding: 0.4rem 0.7rem;
+    padding-top: 0.5rem;
+    font-size: 1.8em;
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
     border: none;

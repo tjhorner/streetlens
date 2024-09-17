@@ -23,6 +23,9 @@
 	"type": "module",
 	"dependencies": {
 		"@egjs/svelte-view360": "^4.0.0-beta.7",
+		"@fortawesome/fontawesome-svg-core": "^6.6.0",
+		"@fortawesome/free-solid-svg-icons": "^6.6.0",
+		"@fortawesome/svelte-fontawesome": "^0.2.2",
 		"@turf/bbox": "^7.1.0",
 		"devalue": "^5.0.0",
 		"just-flush": "^2.3.0",
