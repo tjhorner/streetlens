@@ -5,6 +5,7 @@ import {
   LineString,
   OneToMany,
   PrimaryGeneratedColumn,
+  VirtualColumn,
 } from "typeorm"
 import { TrackImage } from "./track-image.entity"
 
@@ -27,6 +28,13 @@ export class Track {
 
   @Column("geometry")
   geometry: LineString
+
+  @VirtualColumn({
+    type: "bool",
+    query: (alias) =>
+      `SELECT EXISTS (SELECT 1 FROM track_image WHERE track_image."trackId" = ${alias}.id)`,
+  })
+  hasImages: boolean
 
   @OneToMany(() => TrackImage, (image) => image.track)
   images: TrackImage[]
