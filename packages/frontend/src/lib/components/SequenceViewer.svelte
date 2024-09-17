@@ -83,7 +83,7 @@
     font-family: sans-serif;
     position: fixed;
     bottom: 0;
-    padding: 1rem;
+    padding: 0.75rem;
     display: flex;
     gap: 10px;
   }
@@ -104,5 +104,9 @@
 
   button:not(:disabled):hover {
     background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  .sequence-viewer :global(.view360-container) {
+    display: flex;
   }
 </style>
