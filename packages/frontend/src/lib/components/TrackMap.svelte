@@ -207,6 +207,11 @@
 
   onMount(async () => {
     await load(true)
+
+    if (allTracks.features.length === 0) {
+      return
+    }
+
     const boundingBox = bbox(allTracks)
     map.fitBounds(boundingBox as any, { padding: 50, duration: 0 })
   })
@@ -234,7 +239,7 @@
       </div>
 
       <div class="input-group">
-        <button on:click={load}>Refresh</button>
+        <button on:click={() => load()}>Refresh</button>
       </div>
 
       <div class="input-group">
