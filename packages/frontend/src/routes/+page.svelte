@@ -6,9 +6,10 @@
 </script>
 
 <Notifier />
+<TrackMap />
 
-<div class="split">
-  <div class="left"><TrackMap /></div>
+<!-- <div class="split">
+  <div class="left"></div>
   <div class="right"><RecentImports /></div>
 </div>
 
@@ -26,4 +27,4 @@
     min-width: 300px;
     overflow-y: scroll;
   }
-</style>
+</style> -->

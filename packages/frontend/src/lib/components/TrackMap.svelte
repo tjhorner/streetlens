@@ -1,6 +1,6 @@
 <script lang="ts">
   import bbox from "@turf/bbox"
-  import type { Feature, FeatureCollection } from "geojson"
+  import type { Feature, FeatureCollection, Point } from "geojson"
   import { onMount } from "svelte"
   import {
     MapLibre,
@@ -9,12 +9,14 @@
     CircleLayer,
     Control,
     Popup,
+    Marker,
     type LayerClickInfo,
   } from "svelte-maplibre"
   import flush from "just-flush"
   import DateFilter from "./DateFilter.svelte"
   import Legend from "./Legend.svelte"
-  import View360, { EquirectProjection } from "@egjs/svelte-view360"
+  import SequenceViewer from "./SequenceViewer.svelte"
+  import HeadingMarker from "./HeadingMarker.svelte"
 
   let selectedTracks: FeatureCollection | undefined
   let popupOpen = false
@@ -28,7 +30,11 @@
     features: [],
   }
 
+  let cameraYaw = 0
   let selectedImage: Feature | undefined
+  let hasPreviousImage = false
+  let hasNextImage = false
+
   let trackImages: FeatureCollection = {
     type: "FeatureCollection",
     features: [],
@@ -121,6 +127,69 @@
     }
   }
 
+  function handleSelectImage(event: CustomEvent<LayerClickInfo>) {
+    const features = event.detail.features
+    if (features.length === 0) {
+      selectedImage = undefined
+      return
+    }
+
+    selectImage(features[0].id as number)
+  }
+
+  function selectImage(id?: number) {
+    if (selectedImage) {
+      map.setFeatureState(
+        { source: "images", id: selectedImage.id },
+        { selected: false }
+      )
+    }
+
+    if (!id) {
+      selectedImage = undefined
+      return
+    }
+
+    const index = trackImages.features.findIndex((image) => image.id === id)
+    selectedImage = trackImages.features[index]
+    map.setFeatureState({ source: "images", id }, { selected: true })
+
+    hasNextImage = index < trackImages.features.length - 1
+    hasPreviousImage = index > 0
+  }
+
+  function selectPreviousImage() {
+    if (!selectedImage) {
+      return
+    }
+
+    const index = trackImages.features.findIndex(
+      (image) => image.id === selectedImage!.id
+    )
+
+    if (index === 0) {
+      return
+    }
+
+    selectImage(trackImages.features[index - 1].id as number)
+  }
+
+  function selectNextImage() {
+    if (!selectedImage) {
+      return
+    }
+
+    const index = trackImages.features.findIndex(
+      (image) => image.id === selectedImage!.id
+    )
+
+    if (index === trackImages.features.length - 1) {
+      return
+    }
+
+    selectImage(trackImages.features[index + 1].id as number)
+  }
+
   function getGpxStudioUrl(id: any) {
     const files = JSON.stringify([
       `${window.location.origin}/api/tracks/${id}/gpx`,
@@ -131,6 +200,10 @@
   function setSelectedFeatureHover(id: any, state = false) {
     map.setFeatureState({ source: "selected", id }, { hover: state })
   }
+
+  $: heading = parseFloat(selectedImage?.properties?.heading ?? 0) - cameraYaw
+  $: selectedImageCoordinates = (selectedImage?.geometry as Point)
+    ?.coordinates as [number, number]
 
   onMount(async () => {
     await load()
@@ -172,30 +245,47 @@
 
   {#if selectedImage}
     <Control position="bottom-left">
-      {@const projection = new EquirectProjection({
-        src: `/api/images/${selectedImage.id}.jpg`,
-      })}
-
-      <View360 {projection} />
+      <SequenceViewer
+        imageUrl={`/api/images/${selectedImage.id}.jpg`}
+        hasNext={hasNextImage}
+        hasPrevious={hasPreviousImage}
+        on:next={selectNextImage}
+        on:previous={selectPreviousImage}
+        on:close={() => selectImage(undefined)}
+        on:yawChange={({ detail }) => (cameraYaw = detail)}
+      />
     </Control>
   {/if}
 
   {#if trackImages.features.length > 0}
     <GeoJSON id="images" data={trackImages}>
+      {#if selectedImage}
+        <Marker lngLat={selectedImageCoordinates} interactive={false}>
+          <HeadingMarker {heading} />
+        </Marker>
+      {/if}
+
       <CircleLayer
         id="images"
         minzoom={14}
         manageHoverState
         hoverCursor="pointer"
-        on:click={(event) => {
-          selectedImage = event.detail.features[0]
-        }}
+        on:click={handleSelectImage}
         paint={{
-          "circle-radius": 10,
-          "circle-color": "#FF0000",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2, 18, 10],
+          "circle-color": [
+            "case",
+            ["boolean", ["feature-state", "selected"], false],
+            "#008000",
+            "#FF0000",
+          ],
           "circle-opacity": [
             "case",
-            ["boolean", ["feature-state", "hover"], false],
+            [
+              "any",
+              ["boolean", ["feature-state", "selected"], false],
+              ["boolean", ["feature-state", "hover"], false],
+            ],
             1,
             0.5,
           ],
