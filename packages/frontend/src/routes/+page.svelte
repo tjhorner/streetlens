@@ -1,30 +1,6 @@
 <script>
-  import "../app.css"
-  import TrackMap from "$lib/components/TrackMap.svelte"
-  import RecentImports from "$lib/components/RecentImports.svelte"
-  import Notifier from "$lib/components/Notifier.svelte"
+  import "../../app.css"
+  import TrackExplorer from "$lib/components/TrackExplorer.svelte"
 </script>
 
-<Notifier />
-<TrackMap />
-
-<!-- <div class="split">
-  <div class="left"></div>
-  <div class="right"><RecentImports /></div>
-</div>
-
-<style>
-  .split {
-    display: flex;
-    height: 100%;
-  }
-
-  .left {
-    flex: 1;
-  }
-
-  .right {
-    min-width: 300px;
-    overflow-y: scroll;
-  }
-</style> -->
+<TrackExplorer />

@@ -41,18 +41,30 @@
 </script>
 
 <div class="sequence-viewer" transition:fly={{ duration: 500, y: 500 }}>
-  <button class="close" on:click={() => dispatch("close")}>
+  <button
+    title="Close Image Viewer"
+    class="close"
+    on:click={() => dispatch("close")}
+  >
     <FontAwesomeIcon icon={faXmark} />
   </button>
 
   <div class="controls">
-    <button disabled={!hasPrevious} on:click={() => dispatch("previous")}>
+    <button
+      title="Previous Image"
+      disabled={!hasPrevious}
+      on:click={() => dispatch("previous")}
+    >
       <FontAwesomeIcon icon={faArrowLeft} />
     </button>
-    <button on:click={downloadImage}>
+    <button title="Download Image" on:click={downloadImage}>
       <FontAwesomeIcon icon={faDownload} />
     </button>
-    <button disabled={!hasNext} on:click={() => dispatch("next")}>
+    <button
+      title="Next Image"
+      disabled={!hasNext}
+      on:click={() => dispatch("next")}
+    >
       <FontAwesomeIcon icon={faArrowRight} />
     </button>
   </div>

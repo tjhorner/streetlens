@@ -95,7 +95,7 @@ export class TrackImportProcessor extends WorkerHost {
     const { stdout, stderr } = await runCmd("gopro2gpx", [
       "--skip-dop",
       "--dop-limit",
-      "500",
+      "1000",
       "-s",
       filePath,
       filePath,

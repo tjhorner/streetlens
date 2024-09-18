@@ -1,0 +1,68 @@
+<script lang="ts">
+  import type { FeatureCollection, Feature, LineString } from "geojson"
+  import type { TrackProps } from "./TrackExplorer.svelte"
+  import {
+    MapLibre,
+    Control,
+    ControlButton,
+    ControlGroup,
+  } from "svelte-maplibre"
+  import TrackSelector from "./TrackSelector.svelte"
+  import bbox from "@turf/bbox"
+  import TrackViewer from "./TrackViewer.svelte"
+  import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
+  import { faArrowLeft } from "@fortawesome/free-solid-svg-icons"
+  import { fly } from "svelte/transition"
+
+  export let tracks: FeatureCollection<LineString, TrackProps>
+  export let selectedTrack: Feature<LineString, TrackProps> | null = null
+
+  let map: maplibregl.Map
+  let initialZoom = true
+
+  function fitToTrackBounds() {
+    if (tracks.features.length === 0 && selectedTrack === null) {
+      return
+    }
+
+    const boundingBox = bbox(selectedTrack ?? tracks)
+    map.fitBounds(boundingBox as any, {
+      padding: 100,
+      duration: initialZoom ? 0 : 1000,
+    })
+
+    initialZoom = false
+  }
+
+  $: map && (tracks || selectedTrack) && fitToTrackBounds()
+</script>
+
+<MapLibre
+  bind:map
+  style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+  class="full-map"
+>
+  {#if selectedTrack === null}
+    <TrackSelector {tracks} bind:selectedTrack />
+  {:else}
+    <Control position="top-left">
+      <div transition:fly={{ x: "-100%" }}>
+        <ControlGroup>
+          <ControlButton on:click={() => (selectedTrack = null)}>
+            <FontAwesomeIcon icon={faArrowLeft} />
+          </ControlButton>
+        </ControlGroup>
+      </div>
+    </Control>
+
+    <TrackViewer track={selectedTrack} />
+  {/if}
+
+  <slot />
+</MapLibre>
+
+<style>
+  :global(.full-map) {
+    height: 100%;
+  }
+</style>

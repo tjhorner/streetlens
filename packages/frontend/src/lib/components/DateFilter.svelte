@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
-  export let value = new Date()
+  export let value: number = 0
 
   let inputElement: HTMLInputElement
 
@@ -15,15 +15,14 @@
 
   function updateSelectedDate(newValue: string) {
     if (newValue === "") return
-    value = new Date(newValue)
+    value = new Date(newValue).getTime()
   }
 
-  $: inputElement && (inputElement.value = toLocalISOString(value))
+  $: inputElement && (inputElement.value = toLocalISOString(new Date(value)))
 
   onMount(() => {
-    const initialValue = toLocalISOString(value)
+    const initialValue = toLocalISOString(new Date(value))
     inputElement.value = initialValue
-    inputElement.max = initialValue
   })
 </script>
 
@@ -31,4 +30,5 @@
   {...$$restProps}
   bind:this={inputElement}
   type="datetime-local"
-  on:change={(e) => updateSelectedDate(e.currentTarget.value)} />
+  on:change={(e) => updateSelectedDate(e.currentTarget.value)}
+/>
