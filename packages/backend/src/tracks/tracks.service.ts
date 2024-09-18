@@ -45,6 +45,7 @@ export class TracksService {
       .leftJoin("track.images", "track_image")
       .addSelect("COUNT(track_image.id) > 0", "track_hasImages")
       .groupBy("track.id")
+      .orderBy("track.captureDate", "DESC")
 
     if (
       filters.start &&
