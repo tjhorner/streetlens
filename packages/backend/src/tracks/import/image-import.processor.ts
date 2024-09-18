@@ -7,6 +7,7 @@ import * as fs from "fs/promises"
 import { TracksService } from "../tracks.service"
 import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
+import { EventEmitter2 } from "@nestjs/event-emitter"
 
 export interface ImageImportPayload {
   trackId: number
@@ -19,6 +20,7 @@ export class ImageImportProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TracksService))
     private readonly tracksService: TracksService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super()
   }
@@ -54,6 +56,12 @@ export class ImageImportProcessor extends WorkerHost {
     )
 
     await this.tracksService.createImages(images)
+
+    this.eventEmitter.emit("track.imagesImported", {
+      id: track.id,
+      name: track.name,
+      imageCount: images.length,
+    })
   }
 
   private parseMapillaryDate(date: string): Date {

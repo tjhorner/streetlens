@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common"
 import { TracksService } from "./tracks/tracks.service"
 import { OnEvent } from "@nestjs/event-emitter"
 import { NotificationsService } from "./notifications/notifications.service"
+import path from "path"
 
 @Injectable()
 export class TrackWatcherService {
@@ -19,9 +20,11 @@ export class TrackWatcherService {
     }
 
     this.logger.log(`New file detected; import queued for ${filePath}`)
+
+    const fileName = path.basename(filePath)
     this.notificationsService.sendNotification(
       "Import Queued",
-      `New file detected; import queued for ${filePath}`,
+      `New file detected; import queued for ${fileName}`,
     )
 
     await this.tracksService.startImport(filePath)

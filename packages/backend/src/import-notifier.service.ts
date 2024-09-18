@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { NotificationsService } from "./notifications/notifications.service"
 import { OnEvent } from "@nestjs/event-emitter"
+import path from "path"
 
 @Injectable()
 export class ImportNotifierService {
@@ -15,6 +16,21 @@ export class ImportNotifierService {
     )
   }
 
+  @OnEvent("track.imagesImported")
+  async onTrackImagesImported({
+    name,
+    imageCount,
+  }: {
+    name: string
+    imageCount: number
+  }) {
+    await this.notificationsService.sendNotification(
+      `Images Imported`,
+      `Successfully imported ${imageCount} images from ${name}`,
+      "success",
+    )
+  }
+
   @OnEvent("track.importFailure")
   async onTrackImportFailure({
     filePath,
@@ -23,9 +39,10 @@ export class ImportNotifierService {
     filePath: string
     error: string
   }) {
+    const fileName = path.basename(filePath)
     await this.notificationsService.sendNotification(
       `Track Import Failed`,
-      `${filePath} failed to import: ${error}`,
+      `${fileName} failed to import: ${error}`,
       "error",
     )
   }

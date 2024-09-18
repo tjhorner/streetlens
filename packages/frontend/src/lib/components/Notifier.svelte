@@ -20,7 +20,7 @@
 
       const toastFunction = notification.type ? toast[notification.type] : toast
       toastFunction(`${notification.title} - ${notification.message}`, {
-        position: "bottom-left",
+        position: "top-left",
       })
     })
 
