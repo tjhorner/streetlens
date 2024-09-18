@@ -18,6 +18,7 @@ import { ImportNotifierService } from "./import-notifier.service"
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: true,
+      logging: "all",
     }),
     BullModule.forRoot({
       connection: {

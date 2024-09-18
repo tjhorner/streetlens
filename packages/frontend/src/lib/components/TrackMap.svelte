@@ -252,6 +252,7 @@
     <Control position="bottom-left">
       <SequenceViewer
         imageUrl={`/api/images/${selectedImage.id}.jpg`}
+        captureDate={new Date(selectedImage.properties?.captureDate)}
         hasNext={hasNextImage}
         hasPrevious={hasPreviousImage}
         on:next={selectNextImage}

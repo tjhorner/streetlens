@@ -40,7 +40,11 @@ export class TracksService {
   ) {}
 
   list(filters: TrackFilters = {}): Promise<Track[]> {
-    const query = this.tracksRepository.createQueryBuilder("track")
+    const query = this.tracksRepository
+      .createQueryBuilder("track")
+      .leftJoin("track.images", "track_image")
+      .addSelect("COUNT(track_image.id) > 0", "track_hasImages")
+      .groupBy("track.id")
 
     if (
       filters.start &&

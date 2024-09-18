@@ -34,6 +34,7 @@ export class TracksController {
       captureDate: track.captureDate,
       filePath: track.filePath,
       fileHash: track.fileHash,
+      hasImages: track.hasImages,
     }))
   }
 
@@ -76,6 +77,7 @@ export class TracksController {
       captureDate: track.captureDate,
       filePath: track.filePath,
       fileHash: track.fileHash,
+      hasImages: track.hasImages,
     }
   }
 

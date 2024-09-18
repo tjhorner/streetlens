@@ -8,11 +8,12 @@
   import {
     faArrowLeft,
     faArrowRight,
-    faTimes,
     faXmark,
+    faDownload,
   } from "@fortawesome/free-solid-svg-icons"
 
   export let imageUrl: string
+  export let captureDate: Date
   export let hasPrevious: boolean = true
   export let hasNext: boolean = true
 
@@ -27,6 +28,15 @@
     dispatch("yawChange", event.detail.yaw)
   }
 
+  function downloadImage() {
+    const link = document.createElement("a")
+    link.href = imageUrl
+    link.download = new URL(imageUrl, window.location.origin).pathname
+      .split("/")
+      .pop()!
+    link.click()
+  }
+
   $: projection = new EquirectProjection({ src: imageUrl })
 </script>
 
@@ -39,9 +49,16 @@
     <button disabled={!hasPrevious} on:click={() => dispatch("previous")}>
       <FontAwesomeIcon icon={faArrowLeft} />
     </button>
+    <button on:click={downloadImage}>
+      <FontAwesomeIcon icon={faDownload} />
+    </button>
     <button disabled={!hasNext} on:click={() => dispatch("next")}>
       <FontAwesomeIcon icon={faArrowRight} />
     </button>
+  </div>
+
+  <div class="date">
+    {captureDate.toLocaleString()}
   </div>
 
   <View360
@@ -77,6 +94,16 @@
     border: none;
     cursor: pointer;
     border-radius: 0 8px 0 8px;
+  }
+
+  .date {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 8px 0 8px 0;
   }
 
   .controls {

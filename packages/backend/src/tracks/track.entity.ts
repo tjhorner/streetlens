@@ -48,6 +48,7 @@ export class Track {
         captureDate: this.captureDate,
         filePath: this.filePath,
         fileHash: this.fileHash,
+        hasImages: this.hasImages,
       },
       geometry: this.geometry,
     }
