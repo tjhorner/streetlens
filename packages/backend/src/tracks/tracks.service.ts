@@ -21,6 +21,7 @@ export interface TrackFilters {
   start?: string
   end?: string
   bbox?: string
+  order?: "ASC" | "DESC"
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class TracksService {
       .leftJoin("track.images", "track_image")
       .addSelect("COUNT(track_image.id) > 0", "track_hasImages")
       .groupBy("track.id")
-      .orderBy("track.captureDate", "DESC")
+      .orderBy("track.captureDate", filters.order ?? "DESC")
 
     if (
       filters.start &&

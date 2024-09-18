@@ -23,7 +23,12 @@ export class TracksController {
     @Query("end") end?: string,
     @Query("bbox") bbox?: string,
     @Query("format") format?: string,
+    @Query("order") order?: "ASC" | "DESC",
   ) {
+    if (order && !["ASC", "DESC"].includes(order)) {
+      throw new Error("Invalid order")
+    }
+
     const tracks = await this.tracksService.list({ start, end, bbox })
     if (format === "geojson") {
       return this.tracksService.toGeoJSON(tracks)
