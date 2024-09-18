@@ -1,6 +1,6 @@
 <script lang="ts">
   import bbox from "@turf/bbox"
-  import type { Feature, FeatureCollection, Point } from "geojson"
+  import type { Feature, FeatureCollection, LineString, Point } from "geojson"
   import { onMount } from "svelte"
   import {
     MapLibre,
@@ -17,6 +17,7 @@
   import Legend from "./Legend.svelte"
   import SequenceViewer from "./SequenceViewer.svelte"
   import HeadingMarker from "./HeadingMarker.svelte"
+  import pointToLineDistance from "@turf/point-to-line-distance"
 
   let selectedTracks: FeatureCollection | undefined
   let popupOpen = false
@@ -106,24 +107,28 @@
   }
 
   function handleSelectFeature(event: CustomEvent<LayerClickInfo>) {
-    const features = event.detail.features
-    if (features.length === 0) {
-      selectedTracks = undefined
-      return
-    }
-
-    const sourceFeatures = features
-      .map(
-        (feature) =>
-          allTracks.features.find((track) => track.id === feature.id)!
+    const clickedPoint = event.detail.event.lngLat
+    const nearbyFeatures = allTracks.features
+      .filter(
+        (track) =>
+          pointToLineDistance(
+            [clickedPoint.lng, clickedPoint.lat],
+            track.geometry as LineString,
+            { units: "meters" }
+          ) < 10
       )
       .sort((a, b) => {
         return b.properties?.captureDate - a.properties?.captureDate
       })
 
+    if (nearbyFeatures.length === 0) {
+      selectedTracks = undefined
+      return
+    }
+
     selectedTracks = {
       type: "FeatureCollection",
-      features: sourceFeatures as any,
+      features: nearbyFeatures as any,
     }
   }
 
@@ -329,7 +334,7 @@
         layout={{ "line-cap": "round", "line-join": "round" }}
         on:click={handleSelectFeature}
         paint={{
-          "line-width": 3,
+          "line-width": 2,
           "line-color": [
             "interpolate",
             ["linear"],

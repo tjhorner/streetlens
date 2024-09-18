@@ -27,6 +27,7 @@
 		"@fortawesome/free-solid-svg-icons": "^6.6.0",
 		"@fortawesome/svelte-fontawesome": "^0.2.2",
 		"@turf/bbox": "^7.1.0",
+		"@turf/point-to-line-distance": "^7.1.0",
 		"devalue": "^5.0.0",
 		"just-flush": "^2.3.0",
 		"svelte-french-toast": "^1.2.0",
