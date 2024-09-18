@@ -29,7 +29,7 @@ export class TracksController {
       throw new Error("Invalid order")
     }
 
-    const tracks = await this.tracksService.list({ start, end, bbox })
+    const tracks = await this.tracksService.list({ start, end, bbox, order })
     if (format === "geojson") {
       return this.tracksService.toGeoJSON(tracks)
     }
