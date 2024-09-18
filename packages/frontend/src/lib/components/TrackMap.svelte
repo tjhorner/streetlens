@@ -67,6 +67,7 @@
 
     const params = new URLSearchParams({
       format: "geojson",
+      order: "ASC",
       ...(omitFilters ? {} : flush(serializeFilters())),
     }).toString()
 
