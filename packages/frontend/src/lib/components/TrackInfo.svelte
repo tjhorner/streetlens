@@ -70,6 +70,10 @@
     padding-right: 10px;
   }
 
+  td {
+    word-break: break-all;
+  }
+
   button {
     background-color: revert !important;
   }

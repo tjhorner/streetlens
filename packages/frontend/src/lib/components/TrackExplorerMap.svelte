@@ -6,6 +6,7 @@
     Control,
     ControlButton,
     ControlGroup,
+    AttributionControl,
   } from "svelte-maplibre"
   import TrackSelector from "./TrackSelector.svelte"
   import bbox from "@turf/bbox"
@@ -49,6 +50,7 @@
   bind:map
   style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
   class="full-map"
+  attributionControl={false}
 >
   <Control position="top-left">
     <GoToCoordsControl />

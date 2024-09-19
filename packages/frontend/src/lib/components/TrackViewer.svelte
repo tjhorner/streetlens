@@ -140,7 +140,7 @@
   </Control>
 {/if}
 
-<Control position="bottom-right">
+<Control class="track-info-control" position="bottom-right">
   <div class="control-group" transition:fly={{ x: "100%" }}>
     <TrackInfo {track} />
   </div>
@@ -212,8 +212,16 @@
   }
 
   @media (max-width: 600px) {
-    :global(.image-control) {
+    .control-group {
+      border-radius: 0;
+    }
+
+    :global(.image-control, .track-info-control) {
       margin: 0 !important;
+    }
+
+    :global(.maplibregl-ctrl-bottom-right) {
+      z-index: 1;
     }
   }
 </style>
