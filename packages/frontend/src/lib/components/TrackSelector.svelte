@@ -149,7 +149,8 @@
     ]}
     layout={{ "line-cap": "round", "line-join": "round" }}
     paint={{
-      "line-width": 4,
+      // make line thinner as we zoom in
+      "line-width": ["interpolate", ["linear"], ["zoom"], 0, 8, 18, 2],
       "line-color": [
         "interpolate",
         ["linear"],

@@ -13,6 +13,7 @@
   import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
   import { faArrowLeft } from "@fortawesome/free-solid-svg-icons"
   import { fly } from "svelte/transition"
+  import GoToCoordsControl from "./GoToCoordsControl.svelte"
 
   export let tracks: FeatureCollection<LineString, TrackProps>
   export let selectedTrack: Feature<LineString, TrackProps> | null = null
@@ -49,6 +50,10 @@
   style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
   class="full-map"
 >
+  <Control position="top-left">
+    <GoToCoordsControl />
+  </Control>
+
   {#if selectedTrack === null && tracks.features.length > 0}
     <TrackSelector {tracks} bind:selectedTrack />
   {:else if selectedTrack !== null}
