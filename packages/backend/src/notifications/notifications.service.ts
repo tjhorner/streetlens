@@ -5,7 +5,7 @@ import { Repository } from "typeorm"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
 
-export type NotificationType = "success" | "error"
+export type NotificationType = "success" | "error" | "info"
 
 export interface NotificationSendEvent {
   title: string
@@ -19,7 +19,7 @@ export class NotificationsService {
     @InjectRepository(NotificationTarget)
     private readonly notificationTargetRepository: Repository<NotificationTarget>,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   createTarget(appriseUrl: string) {
     return this.notificationTargetRepository.save({ appriseUrl })

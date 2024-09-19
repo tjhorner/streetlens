@@ -32,17 +32,11 @@ export class ImportNotifierService {
   }
 
   @OnEvent("track.importFailure")
-  async onTrackImportFailure({
-    filePath,
-    error,
-  }: {
-    filePath: string
-    error: string
-  }) {
+  async onTrackImportFailure({ filePath }: { filePath: string }) {
     const fileName = path.basename(filePath)
     await this.notificationsService.sendNotification(
       `Track Import Failed`,
-      `${fileName} failed to import: ${error}`,
+      `Failed to import file ${fileName}`,
       "error",
     )
   }

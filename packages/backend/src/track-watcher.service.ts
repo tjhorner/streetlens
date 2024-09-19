@@ -11,7 +11,7 @@ export class TrackWatcherService {
   constructor(
     private readonly tracksService: TracksService,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   @OnEvent("file.added")
   async onFileAdded(filePath: string) {
@@ -25,6 +25,7 @@ export class TrackWatcherService {
     this.notificationsService.sendNotification(
       "Import Queued",
       `New file detected; import queued for ${fileName}`,
+      "info",
     )
 
     await this.tracksService.startImport(filePath)

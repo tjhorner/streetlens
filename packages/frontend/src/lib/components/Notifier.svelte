@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte"
-  import toast, { Toaster } from "svelte-french-toast"
+  import { Toaster, toast } from "svelte-sonner"
 
   let eventSource: EventSource | undefined
 
-  type NotificationType = "success" | "error"
+  type NotificationType = "success" | "error" | "info"
 
   interface NotificationSendEvent {
     title: string
@@ -19,8 +19,9 @@
       const notification: NotificationSendEvent = JSON.parse(event.data)
 
       const toastFunction = notification.type ? toast[notification.type] : toast
-      toastFunction(`${notification.title} - ${notification.message}`, {
-        position: "top-left",
+      toastFunction(notification.title, {
+        description: notification.message,
+        position: "top-center",
       })
     })
 
@@ -30,4 +31,4 @@
   })
 </script>
 
-<Toaster />
+<Toaster richColors closeButton />
