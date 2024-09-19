@@ -14,6 +14,8 @@
   import HeadingMarker from "./HeadingMarker.svelte"
   import SequenceViewer from "./SequenceViewer.svelte"
   import { onDestroy, type SvelteComponent } from "svelte"
+  import TrackInfo from "./TrackInfo.svelte"
+  import { fly } from "svelte/transition"
 
   interface TrackImageProps {
     sequenceNumber: number
@@ -138,6 +140,12 @@
   </Control>
 {/if}
 
+<Control position="bottom-right">
+  <div class="control-group" transition:fly={{ x: "100%" }}>
+    <TrackInfo {track} />
+  </div>
+</Control>
+
 <GeoJSON id="selectedTrack" data={track}>
   <LineLayer
     id="selectedTrack"
@@ -187,6 +195,24 @@
 </GeoJSON>
 
 <style>
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em 0.75em;
+    background-color: white;
+    border-radius: 0.5em;
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-bottom: 0.5em;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .control-group {
+      background-color: #333;
+      color: white;
+    }
+  }
+
   @media (max-width: 600px) {
     :global(.image-control) {
       margin: 0 !important;
