@@ -13,6 +13,7 @@
   import bbox from "@turf/bbox"
   import HeadingMarker from "./HeadingMarker.svelte"
   import SequenceViewer from "./SequenceViewer.svelte"
+  import { onDestroy, type SvelteComponent } from "svelte"
 
   interface TrackImageProps {
     sequenceNumber: number
@@ -60,6 +61,7 @@
 
     if (!id) {
       selectedImage = undefined
+      fixPadding() // ughhhhh
       flyToTrack()
       return
     }
@@ -71,10 +73,13 @@
     hasNextImage = index < trackImages.features.length - 1
     hasPreviousImage = index > 0
 
-    $map?.flyTo({
+    $map?.easeTo({
       center: selectedImage.geometry.coordinates as [number, number],
       zoom: 16,
       duration: 500,
+      padding: {
+        bottom: window.innerHeight / 2,
+      },
     })
   }
 
@@ -102,6 +107,15 @@
     selectImage(trackImages.features[newIndex].id as number)
   }
 
+  function fixPadding() {
+    $map?.setPadding({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    })
+  }
+
   $: track && loadImages()
 
   $: heading = parseFloat(selectedImage?.properties?.heading ?? "0") - cameraYaw
@@ -110,7 +124,7 @@
 </script>
 
 {#if selectedImage}
-  <Control position="bottom-left">
+  <Control class="image-control" position="bottom-left">
     <SequenceViewer
       imageUrl={`/api/images/${selectedImage.id}.jpg`}
       captureDate={new Date(selectedImage.properties.captureDate)}
@@ -171,3 +185,11 @@
     }}
   />
 </GeoJSON>
+
+<style>
+  @media (max-width: 600px) {
+    :global(.image-control) {
+      margin: 0 !important;
+    }
+  }
+</style>

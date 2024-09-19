@@ -32,3 +32,13 @@
   type="datetime-local"
   on:change={(e) => updateSelectedDate(e.currentTarget.value)}
 />
+
+<style>
+  input {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+  }
+</style>

@@ -25,6 +25,13 @@
       return
     }
 
+    map.setPadding({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    })
+
     const boundingBox = bbox(selectedTrack ?? tracks)
     map.fitBounds(boundingBox as any, {
       padding: 100,

@@ -76,6 +76,7 @@
   <View360
     {projection}
     autoResize
+    scrollable={false}
     plugins={[new LoadingSpinner()]}
     on:viewChange={handleViewChange}
   />
@@ -92,6 +93,19 @@
     height: 400px;
     width: 600px;
     border-radius: 8px;
+  }
+
+  @media (max-width: 600px) {
+    .sequence-viewer :global(canvas) {
+      width: 100%;
+      height: 300px;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .date {
+      border-bottom-right-radius: 0 !important;
+    }
   }
 
   .close {

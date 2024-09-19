@@ -136,7 +136,7 @@
     ]}
     layout={{ "line-cap": "round", "line-join": "round" }}
     paint={{
-      "line-width": 2,
+      "line-width": 4,
       "line-color": [
         "interpolate",
         ["linear"],
