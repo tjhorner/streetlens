@@ -149,7 +149,6 @@
 <GeoJSON id="selectedTrack" data={track}>
   <LineLayer
     id="selectedTrack"
-    hoverCursor="pointer"
     layout={{ "line-cap": "round", "line-join": "round" }}
     paint={{
       "line-width": 3,
@@ -168,7 +167,7 @@
 <GeoJSON id="trackImages" data={trackImages}>
   <CircleLayer
     id="images"
-    minzoom={14}
+    minzoom={12}
     manageHoverState
     hoverCursor="pointer"
     on:click={onSelectImage}
@@ -203,7 +202,6 @@
     border-radius: 0.5em;
     box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0, 0, 0, 0.1);
-    margin-bottom: 0.5em;
   }
 
   @media (prefers-color-scheme: dark) {

@@ -40,7 +40,7 @@
   $: projection = new EquirectProjection({ src: imageUrl })
 </script>
 
-<div class="sequence-viewer" transition:fly={{ duration: 500, y: 500 }}>
+<div class="sequence-viewer" transition:fly|global={{ duration: 500, y: 500 }}>
   <button
     title="Close Image Viewer"
     class="close"

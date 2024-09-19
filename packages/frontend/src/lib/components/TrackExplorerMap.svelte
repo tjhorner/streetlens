@@ -49,9 +49,9 @@
   style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
   class="full-map"
 >
-  {#if selectedTrack === null}
+  {#if selectedTrack === null && tracks.features.length > 0}
     <TrackSelector {tracks} bind:selectedTrack />
-  {:else}
+  {:else if selectedTrack !== null}
     <Control position="top-left">
       <div transition:fly={{ x: "-100%" }}>
         <ControlGroup>
@@ -68,8 +68,13 @@
   <slot />
 </MapLibre>
 
+<svelte:window
+  on:keydown={(e) => e.key === "Escape" && (selectedTrack = null)}
+/>
+
 <style>
-  :global(.full-map) {
+  :global(.full-map, .full-map canvas) {
     height: 100%;
+    outline: none;
   }
 </style>

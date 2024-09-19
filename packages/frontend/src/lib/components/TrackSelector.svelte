@@ -49,6 +49,9 @@
   }
 
   function onLayerClick(e: CustomEvent<LayerClickInfo>) {
+    const searchRadius =
+      $map!.unproject([10, 0]).lng - $map!.unproject([0, 0]).lng
+
     const clickedPoint = e.detail.event.lngLat
     const nearbyFeatures = tracks.features
       .filter(
@@ -56,8 +59,8 @@
           pointToLineDistance(
             [clickedPoint.lng, clickedPoint.lat],
             track.geometry as LineString,
-            { units: "meters" }
-          ) < 20
+            { units: "degrees" }
+          ) < searchRadius
       )
       .sort((a, b) => {
         return b.properties?.captureDate - a.properties?.captureDate
@@ -73,10 +76,14 @@
       return
     }
 
-    selectionCircle = circle([clickedPoint.lng, clickedPoint.lat], 20, {
-      steps: 32,
-      units: "meters",
-    })
+    selectionCircle = circle(
+      [clickedPoint.lng, clickedPoint.lat],
+      searchRadius,
+      {
+        steps: 32,
+        units: "degrees",
+      }
+    )
 
     tracksNearSelection = {
       type: "FeatureCollection",
@@ -92,6 +99,12 @@
       { source: "allTracks", id: track.id },
       { hover: hovered }
     )
+  }
+
+  function selectTrack(track: Feature<LineString, TrackProps>) {
+    tracksNearSelection = undefined
+    selectionCircle = undefined
+    selectedTrack = track
   }
 
   $: tracks && updateDateRange()
@@ -149,13 +162,17 @@
       "line-opacity": 1,
     }}
   >
-    <Popup popupClass="table-popup" openOn="click">
+    <Popup popupClass="table-popup" openOn="click" let:close>
       {#if tracksNearSelection}
+        <h3>{tracksNearSelection.features.length} tracks</h3>
         <TrackTable
           tracks={tracksNearSelection}
           on:hover={(e) => setHoverState(e.detail, true)}
           on:unhover={(e) => setHoverState(e.detail, false)}
-          on:select={(e) => (selectedTrack = e.detail)}
+          on:select={(e) => {
+            selectTrack(e.detail)
+            close()
+          }}
         />
       {/if}
     </Popup>
@@ -208,5 +225,15 @@
   :global(.table-popup .maplibregl-popup-content) {
     padding: 10px;
     background-color: #333;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  :global(.table-popup h3) {
+    margin: 0;
+  }
+
+  :global(.table-popup .maplibregl-popup-tip) {
+    border-bottom-color: #333 !important;
   }
 </style>

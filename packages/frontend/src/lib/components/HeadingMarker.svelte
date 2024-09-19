@@ -1,11 +1,16 @@
 <script lang="ts">
   import { faLocationArrow } from "@fortawesome/free-solid-svg-icons"
   import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
+  import { scale } from "svelte/transition"
 
   export let heading: number
 </script>
 
-<div class="heading-marker" style={`transform: rotate(${heading - 45}deg)`}>
+<div
+  transition:scale|global
+  class="heading-marker"
+  style={`transform: rotate(${heading - 45}deg)`}
+>
   <FontAwesomeIcon icon={faLocationArrow} />
 </div>
 
