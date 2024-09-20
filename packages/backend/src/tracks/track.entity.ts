@@ -1,13 +1,14 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
-  Feature,
   LineString,
   OneToMany,
   PrimaryGeneratedColumn,
   VirtualColumn,
 } from "typeorm"
-import { TrackImage } from "./track-image.entity"
+import { TrackImage } from "./track-images/track-image.entity"
+import { feature } from "@turf/helpers"
 
 @Entity()
 export class Track {
@@ -16,6 +17,9 @@ export class Track {
 
   @Column()
   name: string
+
+  @CreateDateColumn()
+  importDate: Date
 
   @Column()
   captureDate: Date
@@ -39,18 +43,19 @@ export class Track {
   @OneToMany(() => TrackImage, (image) => image.track)
   images: TrackImage[]
 
-  toGeoJSON(): Feature {
-    return {
-      type: "Feature",
-      id: this.id,
-      properties: {
+  toGeoJSON() {
+    return feature(
+      this.geometry,
+      {
         name: this.name,
         captureDate: this.captureDate,
         filePath: this.filePath,
         fileHash: this.fileHash,
         hasImages: this.hasImages,
       },
-      geometry: this.geometry,
-    }
+      {
+        id: this.id,
+      },
+    )
   }
 }

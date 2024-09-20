@@ -12,25 +12,21 @@ import { TracksService } from "./tracks.service"
 import { JobType } from "bullmq"
 import * as fs from "fs"
 import path from "path"
+import { ListTracksDto } from "./dto/list-tracks.input"
 
 @Controller("tracks")
 export class TracksController {
   constructor(private readonly tracksService: TracksService) {}
 
   @Get()
-  async list(
-    @Query("start") start?: string,
-    @Query("end") end?: string,
-    @Query("bbox") bbox?: string,
-    @Query("format") format?: string,
-    @Query("order") order?: "ASC" | "DESC",
-  ) {
-    if (order && !["ASC", "DESC"].includes(order)) {
+  async list(@Query() dto: ListTracksDto) {
+    if (dto.order && !["ASC", "DESC"].includes(dto.order)) {
       throw new Error("Invalid order")
     }
 
-    const tracks = await this.tracksService.list({ start, end, bbox, order })
-    if (format === "geojson") {
+    const tracks = await this.tracksService.list(dto)
+
+    if (dto.format === "geojson") {
       return this.tracksService.toGeoJSON(tracks)
     }
 
@@ -92,6 +88,7 @@ export class TracksController {
     @Query("format") format?: string,
   ) {
     const images = await this.tracksService.getImages(id)
+
     if (format === "geojson") {
       return this.tracksService.toGeoJSON(images)
     }

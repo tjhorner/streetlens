@@ -1,21 +1,16 @@
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter"
+import { BullBoardModule } from "@bull-board/nestjs"
+import { BullModule } from "@nestjs/bullmq"
 import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
+import { TrackImportProcessor } from "./import/track-import.processor"
+import { ImagesController } from "./track-images/images.controller"
+import { ImageImportProcessor } from "./track-images/import/image-import.processor"
+import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
-import { TracksService } from "./tracks.service"
-import { BullModule } from "@nestjs/bullmq"
-import {
-  TRACK_IMPORT_QUEUE,
-  TrackImportProcessor,
-} from "./import/track-import.processor"
 import { TracksController } from "./tracks.controller"
-import { BullBoardModule } from "@bull-board/nestjs"
-import { BullMQAdapter } from "@bull-board/api/bullMQAdapter"
-import { TrackImage } from "./track-image.entity"
-import {
-  IMAGE_IMPORT_QUEUE,
-  ImageImportProcessor,
-} from "./import/image-import.processor"
-import { ImagesController } from "./images.controller"
+import { TracksService } from "./tracks.service"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queue-names"
 
 @Module({
   imports: [

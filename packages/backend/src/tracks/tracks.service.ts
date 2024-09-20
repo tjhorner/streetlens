@@ -1,25 +1,22 @@
-import { HttpException, Injectable } from "@nestjs/common"
-import { InjectRepository } from "@nestjs/typeorm"
-import { Track } from "./track.entity"
-import { DeepPartial, Feature, Repository } from "typeorm"
 import { InjectQueue } from "@nestjs/bullmq"
-import {
-  TRACK_IMPORT_QUEUE,
-  TrackImportPayload,
-} from "./import/track-import.processor"
+import { HttpException, Injectable } from "@nestjs/common"
+import { OnEvent } from "@nestjs/event-emitter"
+import { InjectRepository } from "@nestjs/typeorm"
+import { featureCollection } from "@turf/helpers"
 import { JobType, Queue } from "bullmq"
+import { Feature } from "geojson"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { TrackImage } from "./track-image.entity"
-import {
-  IMAGE_IMPORT_QUEUE,
-  ImageImportPayload,
-} from "./import/image-import.processor"
-import { OnEvent } from "@nestjs/event-emitter"
+import { DeepPartial, Repository } from "typeorm"
+import { TrackImportPayload } from "./import/track-import.processor"
+import { ImageImportPayload } from "./track-images/import/image-import.processor"
+import { TrackImage } from "./track-images/track-image.entity"
+import { Track } from "./track.entity"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queue-names"
 
 export interface TrackFilters {
-  start?: string
-  end?: string
+  start?: Date
+  end?: Date
   bbox?: string
   order?: "ASC" | "DESC"
 }
@@ -48,23 +45,19 @@ export class TracksService {
       .groupBy("track.id")
       .orderBy("track.captureDate", filters.order ?? "DESC")
 
-    if (
-      filters.start &&
-      filters.end &&
-      new Date(filters.start) > new Date(filters.end)
-    ) {
+    if (filters.start && filters.end && filters.start > filters.end) {
       throw new HttpException("start must be less than or equal to end", 400)
     }
 
     if (filters.start) {
       query.andWhere("track.captureDate >= :start", {
-        start: new Date(filters.start),
+        start: filters.start,
       })
     }
 
     if (filters.end) {
       query.andWhere("track.captureDate <= :end", {
-        end: new Date(filters.end),
+        end: filters.start,
       })
     }
 
@@ -176,10 +169,7 @@ export class TracksService {
     return this.imageImportQueue.addBulk(jobs)
   }
 
-  toGeoJSON(tracks: { toGeoJSON(): Feature }[]) {
-    return {
-      type: "FeatureCollection",
-      features: tracks.map((track) => track.toGeoJSON()),
-    }
+  toGeoJSON<T extends Feature>(tracks: { toGeoJSON(): T }[]) {
+    return featureCollection(tracks.map((track) => track.toGeoJSON()))
   }
 }

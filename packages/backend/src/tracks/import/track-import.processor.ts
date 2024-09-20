@@ -8,16 +8,15 @@ import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
-import { smoothTrackSegment } from "src/tracks/import/gpx-smooth"
+import { smoothTrackSegment } from "./gpx-smooth"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
+import { TRACK_IMPORT_QUEUE } from "../queue-names"
 
 export interface TrackImportPayload {
   filePath: string
   force?: boolean
 }
-
-export const TRACK_IMPORT_QUEUE = "track-import"
 
 @Processor(TRACK_IMPORT_QUEUE)
 export class TrackImportProcessor extends WorkerHost {

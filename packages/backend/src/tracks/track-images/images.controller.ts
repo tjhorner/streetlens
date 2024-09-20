@@ -6,7 +6,7 @@ import {
   StreamableFile,
   Header,
 } from "@nestjs/common"
-import { TracksService } from "./tracks.service"
+import { TracksService } from "../tracks.service"
 import * as fs from "fs"
 
 @Controller("images")

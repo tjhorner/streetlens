@@ -1,12 +1,13 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
-  Feature,
   ManyToOne,
   Point,
   PrimaryGeneratedColumn,
 } from "typeorm"
-import { Track } from "./track.entity"
+import { Track } from "../track.entity"
+import { feature } from "@turf/helpers"
 
 @Entity()
 export class TrackImage {
@@ -15,6 +16,9 @@ export class TrackImage {
 
   @Column()
   sequenceNumber: number
+
+  @CreateDateColumn()
+  importDate: Date
 
   @Column()
   captureDate: Date
@@ -31,16 +35,17 @@ export class TrackImage {
   @ManyToOne(() => Track, (track) => track.images)
   track: Track
 
-  toGeoJSON(): Feature {
-    return {
-      type: "Feature",
-      id: this.id,
-      properties: {
+  toGeoJSON() {
+    return feature(
+      this.location,
+      {
         sequenceNumber: this.sequenceNumber,
         captureDate: this.captureDate,
         heading: this.heading,
       },
-      geometry: this.location,
-    }
+      {
+        id: this.id,
+      },
+    )
   }
 }

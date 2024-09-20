@@ -4,18 +4,17 @@ import { runCmd } from "src/util/run-command"
 import { MapillaryImageDescription } from "./mapillary-metadata"
 import path from "path"
 import * as fs from "fs/promises"
-import { TracksService } from "../tracks.service"
+import { TracksService } from "../../tracks.service"
 import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
+import { IMAGE_IMPORT_QUEUE } from "src/tracks/queue-names"
 
 export interface ImageImportPayload {
   trackId: number
 }
 
-export const IMAGE_IMPORT_QUEUE = "image-import"
-
-@Processor("image-import")
+@Processor(IMAGE_IMPORT_QUEUE)
 export class ImageImportProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TracksService))
