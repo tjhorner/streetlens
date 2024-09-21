@@ -33,6 +33,12 @@
     end: new Date().getTime(),
   }
 
+  let layerFilter = [
+    "all",
+    [">=", ["get", "captureDate"], filters.start],
+    ["<=", ["get", "captureDate"], filters.end],
+  ] as any
+
   function updateDateRange() {
     minDate = Number.MAX_SAFE_INTEGER
     maxDate = 0
@@ -49,8 +55,11 @@
   }
 
   function onLayerClick(e: CustomEvent<LayerClickInfo>) {
+    selectionCircle = undefined
+    tracksNearSelection = undefined
+
     const searchRadius =
-      $map!.unproject([10, 0]).lng - $map!.unproject([0, 0]).lng
+      $map!.unproject([15, 0]).lng - $map!.unproject([0, 0]).lng
 
     const clickedPoint = e.detail.event.lngLat
     const nearbyFeatures = tracks.features
@@ -138,15 +147,40 @@
   />
 
   <LineLayer
-    id="allTracks"
+    id="trackHitbox"
     beforeId="highlightedTracks"
     hoverCursor="pointer"
     on:click={onLayerClick}
-    filter={[
-      "all",
-      [">=", ["get", "captureDate"], filters.start],
-      ["<=", ["get", "captureDate"], filters.end],
-    ]}
+    filter={layerFilter}
+    layout={{ "line-cap": "round", "line-join": "round" }}
+    paint={{
+      "line-width": 40,
+      "line-opacity": 0,
+    }}
+  >
+    <Popup popupClass="table-popup" openOn="click" let:close>
+      {#if tracksNearSelection}
+        <h3>{tracksNearSelection.features.length} tracks</h3>
+        <TrackTable
+          tracks={tracksNearSelection}
+          on:hover={(e) => setHoverState(e.detail, true)}
+          on:unhover={(e) => setHoverState(e.detail, false)}
+          on:select={(e) => {
+            selectTrack(e.detail)
+            close()
+          }}
+        />
+      {:else}
+        {close()}
+      {/if}
+    </Popup>
+  </LineLayer>
+
+  <LineLayer
+    id="allTracks"
+    beforeId="trackHitbox"
+    interactive={false}
+    filter={layerFilter}
     layout={{ "line-cap": "round", "line-join": "round" }}
     paint={{
       // make line thinner as we zoom in
@@ -162,22 +196,7 @@
       ],
       "line-opacity": 1,
     }}
-  >
-    <Popup popupClass="table-popup" openOn="click" let:close>
-      {#if tracksNearSelection}
-        <h3>{tracksNearSelection.features.length} tracks</h3>
-        <TrackTable
-          tracks={tracksNearSelection}
-          on:hover={(e) => setHoverState(e.detail, true)}
-          on:unhover={(e) => setHoverState(e.detail, false)}
-          on:select={(e) => {
-            selectTrack(e.detail)
-            close()
-          }}
-        />
-      {/if}
-    </Popup>
-  </LineLayer>
+  />
 </GeoJSON>
 
 {#if selectionCircle}
