@@ -38,10 +38,24 @@
     link.click()
   }
 
+  function handleKeyboardShortcuts(
+    event: KeyboardEvent & { currentTarget: EventTarget & Window }
+  ) {
+    if (event.key === "ArrowLeft" && hasPrevious) {
+      dispatch("previous")
+    } else if (event.key === "ArrowRight" && hasNext) {
+      dispatch("next")
+    }
+  }
+
   $: projection = new EquirectProjection({ src: imageUrl })
 </script>
 
-<div bind:this={el} class="sequence-viewer" transition:fly|global={{ duration: 500, y: 500 }}>
+<div
+  bind:this={el}
+  class="sequence-viewer"
+  transition:fly|global={{ duration: 500, y: 500 }}
+>
   <button
     title="Close Image Viewer"
     class="close"
@@ -82,6 +96,8 @@
     on:viewChange={handleViewChange}
   />
 </div>
+
+<svelte:window on:keydown={handleKeyboardShortcuts} />
 
 <style>
   .sequence-viewer {
