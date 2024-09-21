@@ -11,7 +11,7 @@ import { forwardRef, Inject } from "@nestjs/common"
 import { smoothTrackSegment } from "./gpx-smooth"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
-import { TRACK_IMPORT_QUEUE } from "../queue-names"
+import { TRACK_IMPORT_QUEUE } from "../queues.constants"
 
 export interface TrackImportPayload {
   filePath: string

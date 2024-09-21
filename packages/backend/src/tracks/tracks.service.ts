@@ -12,7 +12,7 @@ import { TrackImportPayload } from "./import/track-import.processor"
 import { ImageImportPayload } from "./track-images/import/image-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
-import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queue-names"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
 
 export interface TrackFilters {
   start?: Date

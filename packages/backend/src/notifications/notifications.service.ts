@@ -19,7 +19,7 @@ export class NotificationsService {
     @InjectRepository(NotificationTarget)
     private readonly notificationTargetRepository: Repository<NotificationTarget>,
     private readonly eventEmitter: EventEmitter2,
-  ) { }
+  ) {}
 
   createTarget(appriseUrl: string) {
     return this.notificationTargetRepository.save({ appriseUrl })

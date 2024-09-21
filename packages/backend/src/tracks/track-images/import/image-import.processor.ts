@@ -8,7 +8,7 @@ import { TracksService } from "../../tracks.service"
 import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { IMAGE_IMPORT_QUEUE } from "src/tracks/queue-names"
+import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
 
 export interface ImageImportPayload {
   trackId: number

@@ -16,6 +16,7 @@
   export let captureDate: Date
   export let hasPrevious: boolean = true
   export let hasNext: boolean = true
+  export let el: HTMLElement | undefined = undefined
 
   const dispatch = createEventDispatcher<{
     yawChange: number
@@ -40,7 +41,7 @@
   $: projection = new EquirectProjection({ src: imageUrl })
 </script>
 
-<div class="sequence-viewer" transition:fly|global={{ duration: 500, y: 500 }}>
+<div bind:this={el} class="sequence-viewer" transition:fly|global={{ duration: 500, y: 500 }}>
   <button
     title="Close Image Viewer"
     class="close"

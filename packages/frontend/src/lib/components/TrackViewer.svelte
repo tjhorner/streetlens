@@ -13,7 +13,7 @@
   import bbox from "@turf/bbox"
   import HeadingMarker from "./HeadingMarker.svelte"
   import SequenceViewer from "./SequenceViewer.svelte"
-  import { onDestroy, type SvelteComponent } from "svelte"
+  import { tick } from "svelte"
   import TrackInfo from "./TrackInfo.svelte"
   import { fly } from "svelte/transition"
 
@@ -31,6 +31,7 @@
 
   const map = mapContext().map
 
+  let sequenceViewerElement: HTMLElement | undefined
   let selectedImage: Feature<Point, TrackImageProps> | undefined
   let hasPreviousImage = false
   let hasNextImage = false
@@ -53,7 +54,7 @@
     selectImage(features[0].id as number)
   }
 
-  function selectImage(id?: number) {
+  async function selectImage(id?: number) {
     if (selectedImage) {
       $map?.setFeatureState(
         { source: "trackImages", id: selectedImage.id },
@@ -75,12 +76,14 @@
     hasNextImage = index < trackImages.features.length - 1
     hasPreviousImage = index > 0
 
+    await tick()
+
     $map?.easeTo({
       center: selectedImage.geometry.coordinates as [number, number],
       zoom: 16,
       duration: 500,
       padding: {
-        bottom: window.innerHeight / 2,
+        bottom: sequenceViewerElement?.clientHeight ?? 0,
       },
     })
   }
@@ -128,6 +131,7 @@
 {#if selectedImage}
   <Control class="image-control" position="bottom-left">
     <SequenceViewer
+      bind:el={sequenceViewerElement}
       imageUrl={`/api/images/${selectedImage.id}.jpg`}
       captureDate={new Date(selectedImage.properties.captureDate)}
       hasNext={hasNextImage}

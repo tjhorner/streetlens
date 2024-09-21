@@ -10,7 +10,7 @@ import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
 import { TracksController } from "./tracks.controller"
 import { TracksService } from "./tracks.service"
-import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queue-names"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
 
 @Module({
   imports: [
