@@ -1,12 +1,10 @@
 <script lang="ts">
-  import * as Popover from "$lib/components/ui/popover"
   import * as Table from "$lib/components/ui/table"
-  import * as Card from "$lib/components/ui/card"
+  import { faPlus, faTrash } from "@fortawesome/free-solid-svg-icons"
   import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
-  import { Button } from "../ui/button"
-  import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons"
-  import ImportDirectoryForm from "./ImportDirectoryForm.svelte"
   import { onMount } from "svelte"
+  import { Button } from "../ui/button"
+  import { Input } from "../ui/input"
 
   interface ImportDirectory {
     id: number
@@ -14,9 +12,22 @@
   }
 
   let directories: ImportDirectory[] = []
+  let newDirectoryPath: string = ""
 
   async function loadDirectories() {
     directories = await getDirectories()
+  }
+
+  async function createTarget() {
+    await fetch("/api/directories", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ path: newDirectoryPath }),
+    })
+    newDirectoryPath = ""
+    loadDirectories()
   }
 
   async function getDirectories() {
@@ -37,15 +48,13 @@
 <Table.Root>
   <Table.Header>
     <Table.Row>
-      <Table.Head class="w-[100px]">ID</Table.Head>
-      <Table.Head>Directory Path</Table.Head>
+      <Table.Head class="w-full">Directory Path</Table.Head>
       <Table.Head class="text-right"></Table.Head>
     </Table.Row>
   </Table.Header>
   <Table.Body>
     {#each directories as directory}
       <Table.Row>
-        <Table.Cell>{directory.id}</Table.Cell>
         <Table.Cell class="font-mono">{directory.directoryPath}</Table.Cell>
         <Table.Cell class="text-right">
           <Button on:click={() => deleteDirectory(directory.id)} variant="destructive" size="sm" title="Delete">
@@ -54,14 +63,19 @@
         </Table.Cell>
       </Table.Row>
     {/each}
+    <Table.Row class="hover:bg-inherit">
+      <Table.Cell>
+        <Input
+          class="font-mono"
+          bind:value={newDirectoryPath}
+          placeholder="/mnt/share/my-videos"
+        />
+      </Table.Cell>
+      <Table.Cell class="text-right">
+        <Button on:click={() => createTarget()} size="sm" title="Add">
+          <FontAwesomeIcon icon={faPlus} />
+        </Button>
+      </Table.Cell>
+    </Table.Row>
   </Table.Body>
 </Table.Root>
-
-<Card.Root class="my-3">
-  <Card.Header>
-    <Card.Title>Add import directory</Card.Title>
-  </Card.Header>
-  <Card.Content>
-    <ImportDirectoryForm on:save={loadDirectories} />
-  </Card.Content>
-</Card.Root>
