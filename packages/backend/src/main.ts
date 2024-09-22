@@ -25,6 +25,8 @@ async function bootstrap() {
         etag: true,
         gzip: true,
         brotli: true,
+        single: true,
+        ignores: ["/api/*"],
         setHeaders: (res, pathname) => {
           if (
             pathname.startsWith(`/_app/immutable`) &&
