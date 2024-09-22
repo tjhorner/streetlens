@@ -5,6 +5,7 @@
   import { onMount } from "svelte"
   import { Button } from "../ui/button"
   import { Input } from "../ui/input"
+  import RedactedText from "../RedactedText.svelte"
 
   interface NotificationTarget {
     id: number
@@ -55,7 +56,7 @@
   <Table.Body>
     {#each targets as target}
       <Table.Row>
-        <Table.Cell class="font-mono">{target.appriseUrl}</Table.Cell>
+        <Table.Cell class="font-mono"><RedactedText text={target.appriseUrl} /></Table.Cell>
         <Table.Cell class="text-right">
           <Button on:click={() => deleteTarget(target.id)} variant="destructive" size="sm" title="Delete">
             <FontAwesomeIcon icon={faTrash} />
