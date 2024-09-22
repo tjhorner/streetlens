@@ -21,8 +21,16 @@ export class NotificationsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  listTargets() {
+    return this.notificationTargetRepository.find()
+  }
+
   createTarget(appriseUrl: string) {
     return this.notificationTargetRepository.save({ appriseUrl })
+  }
+
+  deleteTarget(id: number) {
+    return this.notificationTargetRepository.delete(id)
   }
 
   async sendNotification(

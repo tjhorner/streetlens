@@ -89,6 +89,10 @@ p {
   @apply leading-7 [&:not(:first-child)]:mt-6;
 }
 
+p a {
+  @apply font-medium text-blue-600 dark:text-blue-500 hover:underline;
+}
+
 body,
 html {
   margin: 0;
