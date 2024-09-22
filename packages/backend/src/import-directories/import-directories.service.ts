@@ -25,4 +25,16 @@ export class ImportDirectoriesService {
     this.eventEmitter.emit("importDirectory.created", importDirectory)
     return importDirectory
   }
+
+  async delete(id: number) {
+    const importDirectory = await this.importDirectoryRepository.findOneBy({
+      id,
+    })
+    if (!importDirectory) {
+      throw new Error("Import directory not found")
+    }
+
+    await this.importDirectoryRepository.delete(id)
+    this.eventEmitter.emit("importDirectory.deleted", importDirectory)
+  }
 }

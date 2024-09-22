@@ -1,8 +1,5 @@
 <script>
-  import "../app.css"
-  import TrackExplorer from "$lib/components/TrackExplorer.svelte"
-  import Notifier from "$lib/components/Notifier.svelte"
+  import TrackExplorer from "$lib/components/TrackExplorer/TrackExplorer.svelte"
 </script>
 
-<Notifier />
 <TrackExplorer />

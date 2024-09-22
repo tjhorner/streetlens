@@ -11,7 +11,7 @@ export class TrackWatcherService {
   constructor(
     private readonly tracksService: TracksService,
     private readonly notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   @OnEvent("file.added")
   async onFileAdded(filePath: string) {

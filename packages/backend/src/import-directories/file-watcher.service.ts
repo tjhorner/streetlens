@@ -34,6 +34,15 @@ export class FileWatcherService implements OnApplicationBootstrap {
     this.watch(importDirectory.directoryPath, false)
   }
 
+  @OnEvent("importDirectory.deleted")
+  async onImportDirectoryDeleted(importDirectory: ImportDirectory) {
+    this.logger.log(
+      `Unwatching import directory: ${importDirectory.directoryPath}`,
+    )
+
+    this.unwatch(importDirectory.directoryPath)
+  }
+
   async watchAll() {
     const importDirectories = await this.importDirectoryService.list()
 
