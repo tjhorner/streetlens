@@ -18,7 +18,7 @@
     directories = await getDirectories()
   }
 
-  async function createTarget() {
+  async function createDirectory() {
     await fetch("/api/directories", {
       method: "POST",
       headers: {
@@ -72,7 +72,7 @@
         />
       </Table.Cell>
       <Table.Cell class="text-right">
-        <Button on:click={() => createTarget()} size="sm" title="Add">
+        <Button on:click={() => createDirectory()} size="sm" title="Add">
           <FontAwesomeIcon icon={faPlus} />
         </Button>
       </Table.Cell>
