@@ -4,9 +4,9 @@ FROM node:current-alpine AS build-backend
 
 WORKDIR /usr/src/app
 
-COPY --chown=node:node packages/backend/package*.json ./
+COPY --chown=node:node backend/package*.json ./
 RUN npm ci
-COPY --chown=node:node packages/backend .
+COPY --chown=node:node backend .
 RUN npm run build
 RUN npm ci --only=production && npm cache clean --force
 
@@ -18,9 +18,9 @@ FROM node:current-alpine AS build-frontend
 
 WORKDIR /usr/src/app
 
-COPY --chown=node:node packages/frontend/package*.json ./
+COPY --chown=node:node frontend/package*.json ./
 RUN npm ci
-COPY --chown=node:node packages/frontend .
+COPY --chown=node:node frontend .
 RUN npm run build
 RUN npm ci --only=production && npm cache clean --force
 

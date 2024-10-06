@@ -1,0 +1,15 @@
+{
+  "name": "streetlens",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev": "concurrently npm:dev:frontend npm:dev:backend"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

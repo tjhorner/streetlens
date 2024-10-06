@@ -26,6 +26,14 @@ Once the track has been imported, StreetLens will extract key frames from the vi
 
 ![](screenshots/image-import.png)
 
+## Deployment
+
+StreetLens is packaged as a Docker image with all the runtime dependencies included. An example Docker Compose stack using this image is available at [`docker-compose.prod.yaml`](docker-compose.prod.yaml), which also includes a PostGIS database and Redis server to get you up and running quickly.
+
+Once deployed, StreetLens will be available on port 3000.
+
+Please note that there is **no authentication** on the web interface; you should configure a reverse proxy with authentication in front of the app if you plan on deploying it to the public internet.
+
 ## Contributions
 
 I welcome contributions, but please be aware that this project is really early in development so there will likely be sweeping changes decently often. If you're interested in contributing, please open an issue first so we can discuss the changes you'd like to make.
