@@ -3,7 +3,7 @@ services:
     image: ghcr.io/tjhorner/streetlens:main
     depends_on:
       - postgres
-      - redism
+      - redis
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
       REDIS_HOST: redis
