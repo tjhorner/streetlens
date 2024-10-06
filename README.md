@@ -22,6 +22,14 @@ StreetLens can watch a directory for new videos and automatically import them as
 
 ### Image Extraction
 
-Once the track has been imported, StreetLens will extract key frames from the video using a modified version of `mapillary_tools` and display them when you view a track's details. You can view the images with the embedded panorama viewer or download them to your computer.
+Once the track has been imported, StreetLens will extract key frames from the video using [a modified version of `mapillary_tools`](https://github.com/tjhorner/mapillary_tools) and display them when you view a track's details. You can view the images with the embedded panorama viewer or download them to your computer.
 
 ![](screenshots/image-import.png)
+
+## Contributions
+
+I welcome contributions, but please be aware that this project is really early in development so there will likely be sweeping changes decently often. If you're interested in contributing, please open an issue first so we can discuss the changes you'd like to make.
+
+## License
+
+MIT
