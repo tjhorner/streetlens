@@ -56,6 +56,24 @@ If you are having trouble with the file watcher not detecting any new files (thi
 CHOKIDAR_USEPOLLING=1
 ```
 
+## Configuration
+
+### Import Directories
+
+For StreetLens to be useful, you'll need to expose the directory where you store your GoPro Max `.360` video files to the container. You can do this in the Docker Compose stack by adding a volume to the StreetLens service. For example, I store my videos at `/mnt/rainier/share/archive/gopro`, so I add the volume like so:
+
+```yaml
+services:
+  streetlens:
+    # [...]
+    volumes:
+      - /mnt/rainier/share/archive/gopro:/mnt/rainier/share/archive/gopro
+```
+
+I like to keep the volume mounted to the same path in the container as it is on the host, but you can mount it wherever you like.
+
+With this directory exposed, you can go to the Configuration section of the web interface and set the path to the directory where your videos are stored. Once you add the directory, StreetLens will process any existing `.360` files it can find then begin watching it for new files.
+
 ## Contributions
 
 I welcome contributions, but please be aware that this project is really early in development so there will likely be sweeping changes decently often. If you're interested in contributing, please open an issue first so we can discuss the changes you'd like to make.
