@@ -34,6 +34,28 @@ Once deployed, StreetLens will be available on port 3000.
 
 Please note that there is **no authentication** on the web interface; you should configure a reverse proxy with authentication in front of the app if you plan on deploying it to the public internet.
 
+### Notes
+
+#### Time Zone Configuration
+
+You will need to set the `TZ` environment variable to your local time zone in the StreetLens container. This is used to correctly display the time the track was recorded in the web interface.
+
+For example:
+
+```
+TZ=America/Los_Angeles
+```
+
+Proper extraction of the time zone from the GoPro video is planned for the future.
+
+#### File Watch Issues
+
+If you are having trouble with the file watcher not detecting any new files (this can happen in strange setups like Docker using an NFS mount as a volume), set the following environment variable for the StreetLens container:
+
+```
+CHOKIDAR_USEPOLLING=1
+```
+
 ## Contributions
 
 I welcome contributions, but please be aware that this project is really early in development so there will likely be sweeping changes decently often. If you're interested in contributing, please open an issue first so we can discuss the changes you'd like to make.
