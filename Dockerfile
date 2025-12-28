@@ -28,7 +28,7 @@ RUN npm ci --only=production && npm cache clean --force
 
 FROM node:current-alpine
 
-RUN apk add pipx ffmpeg git
+RUN apk add pipx ffmpeg git exiftool
 RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx
 RUN pipx install git+https://github.com/tjhorner/mapillary_tools
 RUN pipx install apprise

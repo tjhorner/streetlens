@@ -9,10 +9,11 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { DeepPartial, Repository } from "typeorm"
 import { TrackImportPayload } from "./import/track-import.processor"
+import { ImageImportPayload } from "./track-images/import/image-import.processor"
 import { VideoImportPayload } from "./track-images/import/video-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
-import { VIDEO_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE, VIDEO_IMPORT_QUEUE } from "./queues.constants"
 
 export interface TrackFilters {
   start?: Date
@@ -35,6 +36,9 @@ export class TracksService {
 
     @InjectQueue(VIDEO_IMPORT_QUEUE)
     private videoImportQueue: Queue<VideoImportPayload>,
+
+    @InjectQueue(IMAGE_IMPORT_QUEUE)
+    private imageImportQueue: Queue<ImageImportPayload>,
   ) {}
 
   list(filters: TrackFilters = {}): Promise<Track[]> {
@@ -85,6 +89,12 @@ export class TracksService {
 
   async get(id: number): Promise<Track> {
     return this.tracksRepository.findOneBy({ id })
+  }
+
+  async getByPath(filePath: string): Promise<Track> {
+    return this.tracksRepository.findOne({
+      where: { filePath: filePath }
+    })
   }
 
   async create(track: DeepPartial<Track>): Promise<Track> {
@@ -138,10 +148,16 @@ export class TracksService {
       throw new Error(`File not found: ${filePath}`)
     }
 
-    return this.trackImportQueue.add(path.basename(filePath), {
-      filePath,
-      force,
-    })
+    if (filePath.endsWith('.360')) {
+      return this.trackImportQueue.add(path.basename(filePath), {
+        filePath,
+        force,
+      })
+    } else {
+      return this.imageImportQueue.add(path.basename(filePath), {
+        filePath, force
+      })
+    }
   }
 
   async reprocessAll() {
