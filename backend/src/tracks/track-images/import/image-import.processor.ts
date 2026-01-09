@@ -171,15 +171,22 @@ export class ImageImportProcessor extends WorkerHost {
       image.location.coordinates
     ))
 
-    const headings: number[] = await this.computeHeadings(allPoints)
-    const track_images_to_update = []
-    for (let i = 0; i < headings.length; i++) {
-      // Decimals get returned from DB as strings, so cast to Number
-      const heading = Number(track_images[i].heading)
-      if (heading !== headings[i]) {
-        console.log(`Updating heading for image ${track_images[i].sequenceNumber} from ${heading} to ${headings[i]}`)
-        track_images[i].heading = headings[i]
-        track_images_to_update.push(track_images[i])
+    if (allPoints.length > 1) {
+      const headings: number[] = await this.computeHeadings(allPoints)
+      const track_images_to_update = []
+      for (let i = 0; i < headings.length; i++) {
+        // Decimals get returned from DB as strings, so cast to Number
+        const heading = Number(track_images[i].heading)
+        if (heading !== headings[i]) {
+          console.log(`Updating heading for image ${track_images[i].sequenceNumber} from ${heading} to ${headings[i]}`)
+          track_images[i].heading = headings[i]
+          track_images_to_update.push(track_images[i])
+        }
+      }
+      if (track_images_to_update.length > 0) {
+        await Promise.all(track_images_to_update.map(async (image) => {
+          await this.tracksService.upsertImage(image)
+        }))
       }
     }
     if (track_images_to_update.length > 0) {
