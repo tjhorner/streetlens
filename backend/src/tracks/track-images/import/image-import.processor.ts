@@ -11,6 +11,10 @@ import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
 import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
 import { Track } from "src/tracks/track.entity"
+import { TrackPoint, TrackSegment, Track as GPXTrack, GPXFile } from "src/vendor/gpx"
+import { smoothTrackSegment } from "src/tracks/import/gpx-smooth"
+import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
+
 
 export interface ImageImportPayload {
   filePath: string
@@ -189,21 +193,32 @@ export class ImageImportProcessor extends WorkerHost {
         }))
       }
     }
-    if (track_images_to_update.length > 0) {
-      await Promise.all(track_images_to_update.map(async (image) => {
-        await this.tracksService.upsertImage(image)
-      }))
+    const trackpoints = allPoints.map((point, index): TrackPoint => (new TrackPoint(
+      {
+        attributes: {lon: point[0], lat: point[1]},
+        time: track_images[index].captureDate,
+      }
+    )))
+    const segment = new TrackSegment({trkpt: trackpoints})
+    //const gpx_track = new GPXTrack({trkseg: [segment]})
+    //const gpx_file = new GPXFile({trk: [gpx_track], rte: [], wpt: [], attributes: null, metadata: null})
+
+    const smoothedSegment = smoothTrackSegment(segment)
+
+    const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
+    const points = simplifiedPoints.filter(
+      (point) => point.distance === undefined || point.distance >= 1,
+    )
+
+    var finalPoints: number[][] = points.map((point) => [
+        point.point.getLongitude(),
+        point.point.getLatitude(),
+      ]
+    )
+    if (finalPoints.length < 5) {
+      console.log("Cleaned GPX yielded insignificant data, reverting to original")
+      finalPoints = allPoints
     }
-    //    const smoothedSegment = smoothTrackSegment(segment)
-
-    //  const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
-    //  const points = simplifiedPoints.filter(
-    //   (point) => point.distance === undefined || point.distance >= 1,
-    // )
-
-    //if (points.length < 5) {
-    //throw new Error("Cleaned GPX yielded insignificant data")
-    //}
 
     console.log(`Processed ${allPoints.length} points for track ${track.id}`)
 
@@ -212,7 +227,7 @@ export class ImageImportProcessor extends WorkerHost {
       properties: {},
       geometry: {
         type: "LineString",
-        coordinates: allPoints,
+        coordinates: finalPoints,
       },
     }
   }
