@@ -157,7 +157,7 @@ export class ImageImportProcessor extends WorkerHost {
     await job.log(
       `Parsed data:\n${JSON.stringify(d)}\n`,
     )
-    if (Object.keys(d).length == 0) {
+    if (d['lat'] === null || d['lon'] === null || d['time'] === null) {
       throw new Error(`Could not convert to GPX`)
     }
 
