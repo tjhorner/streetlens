@@ -122,6 +122,23 @@ export class TracksService {
     return this.trackImagesRepository.save(images)
   }
 
+  async upsertImage(image: DeepPartial<TrackImage>): Promise<TrackImage> {
+    const existing = await this.trackImagesRepository.findOne({
+      where: {
+        id: image.id,
+      }
+    })
+
+    if (existing) {
+      return this.trackImagesRepository.save({
+        ...existing,
+        ...image,
+      })
+    }
+
+    return this.trackImagesRepository.save(image)
+  }
+
   async upsert(track: DeepPartial<Track>) {
     const existing = await this.tracksRepository.findOne({
       where: { filePath: track.filePath },

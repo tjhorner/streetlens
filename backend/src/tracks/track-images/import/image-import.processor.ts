@@ -171,6 +171,22 @@ export class ImageImportProcessor extends WorkerHost {
       image.location.coordinates
     ))
 
+    const headings: number[] = await this.computeHeadings(allPoints)
+    const track_images_to_update = []
+    for (let i = 0; i < headings.length; i++) {
+      // Decimals get returned from DB as strings, so cast to Number
+      const heading = Number(track_images[i].heading)
+      if (heading !== headings[i]) {
+        console.log(`Updating heading for image ${track_images[i].sequenceNumber} from ${heading} to ${headings[i]}`)
+        track_images[i].heading = headings[i]
+        track_images_to_update.push(track_images[i])
+      }
+    }
+    if (track_images_to_update.length > 0) {
+      await Promise.all(track_images_to_update.map(async (image) => {
+        await this.tracksService.upsertImage(image)
+      }))
+    }
     //    const smoothedSegment = smoothTrackSegment(segment)
 
     //  const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
@@ -192,6 +208,33 @@ export class ImageImportProcessor extends WorkerHost {
         coordinates: allPoints,
       },
     }
+  }
+
+  private async computeHeadings(points: number[][]): Promise<number[]> {
+    const headings: number[] = []
+    for (let i = 0; i < points.length - 1; i++) {
+      const [lon1, lat1] = points[i]
+      const [lon2, lat2] = points[i + 1]
+
+      const heading = this.calculateBearing(lat1, lon1, lat2, lon2)
+      headings.push(heading)
+    }
+    headings.push(headings[headings.length - 1]) // Repeat last heading
+    return headings
+  }
+
+  private calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRadians = (deg: number) => (deg * Math.PI) / 180
+    const toDegrees = (rad: number) => (rad * 180) / Math.PI
+
+    const dLon = toRadians(lon2 - lon1)
+    const y = Math.sin(dLon) * Math.cos(toRadians(lat2))
+    const x =
+      Math.cos(toRadians(lat1)) * Math.sin(toRadians(lat2)) -
+      Math.sin(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.cos(dLon)
+    let bearing = toDegrees(Math.atan2(y, x))
+    bearing = (bearing + 360) % 360 // Normalize to 0-360
+    return bearing
   }
 
   private async getCaptureDate(filePath: string): Promise<Date> {
