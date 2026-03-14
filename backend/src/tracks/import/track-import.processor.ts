@@ -18,7 +18,9 @@ export interface TrackImportPayload {
   force?: boolean
 }
 
-@Processor(TRACK_IMPORT_QUEUE)
+@Processor(TRACK_IMPORT_QUEUE, {
+  concurrency: parseInt(process.env.TRACK_IMPORT_CONCURRENCY ?? "1", 10),
+})
 export class TrackImportProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TracksService))
