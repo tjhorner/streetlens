@@ -13,4 +13,4 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
-      - ./data/postgres:/var/lib/postgcd resql/data
+      - ./data/postgres:/var/lib/postgresql/data

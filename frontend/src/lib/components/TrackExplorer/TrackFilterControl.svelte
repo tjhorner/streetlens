@@ -8,10 +8,13 @@
     end: today(getLocalTimeZone()),
   }
 
-  function loadLastMonth() {
-    const now = new Date()
-    filters.start = now.setDate(now.getDate() - 30)
-    filters.end = new Date().getTime()
+  const timeZone = getLocalTimeZone()
+
+  function loadLastDays(days: number) {
+    const end = today(timeZone)
+    const start = end.subtract({ days })
+    filters.start = start
+    filters.end = end
   }
 </script>
 
@@ -25,6 +28,17 @@
   <DateFilter bind:value={filters.end} />
 </div>
 
+<div class="preset-group">
+  <div class="preset-buttons">
+    <Button size="sm" variant="secondary" on:click={() => loadLastDays(30)}>
+      Last 30 days
+    </Button>
+    <Button size="sm" variant="secondary" on:click={() => loadLastDays(365)}>
+      Last 365 days
+    </Button>
+  </div>
+</div>
+
 <style>
   .input-group {
     display: flex;
@@ -34,5 +48,18 @@
 
   label {
     font-weight: bold;
+  }
+
+  .preset-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+
+  .preset-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
 </style>
