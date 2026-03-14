@@ -1,169 +1,178 @@
-// Import necessary classes (adjust the import path as needed)
-import { TrackSegment, TrackPoint } from "../../vendor/gpx" // or the appropriate module path
+import { TrackSegment, TrackPoint } from "../../vendor/gpx"
 
-/**
- * Smooths a GPX track segment by removing or correcting improbable points caused by unreliable GPS data.
- * @param trackSegment - The original TrackSegment to be smoothed.
- * @returns A new TrackSegment with smoothed TrackPoints.
- */
-export function smoothTrackSegment(trackSegment: TrackSegment): TrackSegment {
-  const maxSpeedThreshold = 17.8 // meters per second (adjust based on expected activity speed)
-
-  const originalTrackPoints = trackSegment.trkpt
-  const cleanedTrackPoints: TrackPoint[] = []
-
-  let previousValidPoint: TrackPoint | null = null
-  let invalidPoints: TrackPoint[] = []
-
-  for (let i = 0; i < originalTrackPoints.length; i++) {
-    const currentPoint = originalTrackPoints[i]
-    let isValid = true
-
-    if (previousValidPoint) {
-      // Calculate distance and time difference
-      const distance = calculateDistance(previousValidPoint, currentPoint)
-      const timeDiff = calculateTimeDifference(previousValidPoint, currentPoint)
-
-      // Handle missing timestamps or zero/negative time differences
-      if (isNaN(timeDiff) || timeDiff <= 0) {
-        isValid = false
-      } else {
-        // Calculate speed
-        const speed = distance / timeDiff // meters per second
-
-        // Flag point as invalid if speed exceeds threshold
-        if (speed > maxSpeedThreshold) {
-          isValid = false
-        }
-      }
-    }
-
-    if (isValid) {
-      if (invalidPoints.length > 0) {
-        if (previousValidPoint) {
-          const nextValidPoint = currentPoint
-          const numInterpolatedPoints = invalidPoints.length
-
-          // Interpolate over invalid points
-          const interpolatedPoints = interpolatePointsBetween(
-            previousValidPoint,
-            nextValidPoint,
-            numInterpolatedPoints,
-          )
-
-          // Add interpolated points to the cleaned track
-          for (const interpolatedPoint of interpolatedPoints) {
-            cleanedTrackPoints.push(interpolatedPoint)
-          }
-        }
-        invalidPoints = []
-      }
-      cleanedTrackPoints.push(currentPoint)
-      previousValidPoint = currentPoint
-    } else {
-      invalidPoints.push(currentPoint)
-      // Do not update previousValidPoint
-    }
-  }
-
-  // Handle remaining invalid points at the end of the track
-  if (invalidPoints.length > 0 && previousValidPoint) {
-    // Optionally, duplicate the last valid point or discard invalid points
-    // For now, we'll discard the invalid points
-  }
-
-  // Create a new TrackSegment with the cleaned and smoothed points
-  const cleanedTrackSegment = new TrackSegment()
-  cleanedTrackSegment.trkpt = cleanedTrackPoints
-
-  return cleanedTrackSegment
+export interface SmoothOptions {
+  maxSpeed?: number
+  maxDistance?: number
+  minAngle?: number
+  maxConsecutiveDrops?: number
+  minPoints?: number
+  minSegmentLength?: number
+  maxStationaryRadius?: number
+  mergeDistance?: number
+  mergeMaxGap?: number
 }
 
-/**
- * Calculates the distance between two TrackPoints using the Haversine formula.
- * @param pointA - The first TrackPoint.
- * @param pointB - The second TrackPoint.
- * @returns The distance in meters.
- */
-function calculateDistance(pointA: TrackPoint, pointB: TrackPoint): number {
-  const lat1 = pointA.getLatitude() * (Math.PI / 180)
-  const lon1 = pointA.getLongitude() * (Math.PI / 180)
-  const lat2 = pointB.getLatitude() * (Math.PI / 180)
-  const lon2 = pointB.getLongitude() * (Math.PI / 180)
+const DEFAULT_OPTIONS: Required<SmoothOptions> = {
+  maxSpeed: 17.8,
+  maxDistance: 200,
+  minAngle: 30,
+  maxConsecutiveDrops: 10,
+  minPoints: 5,
+  minSegmentLength: 50,
+  maxStationaryRadius: 50,
+  mergeDistance: 100,
+  mergeMaxGap: 30,
+}
+
+export function smoothTrackSegment(
+  trackSegment: TrackSegment,
+  options?: SmoothOptions,
+): TrackSegment {
+  const segments = smoothTrackSegments(trackSegment, options)
+  return segments.reduce((longest, seg) =>
+    seg.trkpt.length > longest.trkpt.length ? seg : longest,
+  )
+}
+
+export function smoothTrackSegments(
+  trackSegment: TrackSegment,
+  options?: SmoothOptions,
+): TrackSegment[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const original = trackSegment.trkpt
+
+  if (original.length < 3) {
+    const seg = new TrackSegment()
+    seg.trkpt = [...original]
+    return [seg]
+  }
+
+  const segments: TrackPoint[][] = []
+  let currentSegment: TrackPoint[] = [original[0]]
+  let consecutiveDrops = 0
+
+  for (let i = 1; i < original.length; i++) {
+    const current = original[i]
+    const prev = currentSegment[currentSegment.length - 1]
+
+    if (!isPointValid(prev, currentSegment, current, opts)) {
+      consecutiveDrops++
+
+      if (consecutiveDrops >= opts.maxConsecutiveDrops) {
+        const distToPrev = calculateDistance(prev, current)
+        const timeSincePrev = calculateTimeDifference(prev, current)
+        const isTemporallyClose =
+          isNaN(timeSincePrev) ||
+          (timeSincePrev >= 0 && timeSincePrev <= opts.mergeMaxGap)
+
+        if (distToPrev <= opts.mergeDistance && isTemporallyClose) {
+          currentSegment.push(current)
+        } else {
+          segments.push(currentSegment)
+          currentSegment = [current]
+        }
+        consecutiveDrops = 0
+      }
+
+      continue
+    }
+
+    currentSegment.push(current)
+    consecutiveDrops = 0
+  }
+
+  segments.push(currentSegment)
+
+  return segments
+    .map((pts) => {
+      const seg = new TrackSegment()
+      seg.trkpt = pts
+      return seg
+    })
+    .filter((seg) => isViableSegment(seg, opts))
+}
+
+function isPointValid(
+  prev: TrackPoint,
+  currentSegment: TrackPoint[],
+  current: TrackPoint,
+  opts: Required<SmoothOptions>,
+): boolean {
+  const distance = calculateDistance(prev, current)
+  if (distance > opts.maxDistance) return false
+
+  const timeDiff = calculateTimeDifference(prev, current)
+  if (!isNaN(timeDiff) && timeDiff > 0) {
+    if (distance / timeDiff > opts.maxSpeed) return false
+  }
+
+  if (currentSegment.length >= 2) {
+    const prevPrev = currentSegment[currentSegment.length - 2]
+    if (calculateAngle(prevPrev, prev, current) < opts.minAngle) return false
+  }
+
+  return true
+}
+
+function isViableSegment(
+  seg: TrackSegment,
+  opts: Required<SmoothOptions>,
+): boolean {
+  const pts = seg.trkpt
+  if (pts.length < opts.minPoints) return false
+
+  let totalLength = 0
+  for (let i = 1; i < pts.length; i++) {
+    totalLength += calculateDistance(pts[i - 1], pts[i])
+    if (totalLength >= opts.minSegmentLength) break
+  }
+  if (totalLength < opts.minSegmentLength) return false
+
+  const centroidLat =
+    pts.reduce((sum, p) => sum + p.getLatitude(), 0) / pts.length
+  const centroidLon =
+    pts.reduce((sum, p) => sum + p.getLongitude(), 0) / pts.length
+  const centroid = {
+    getLatitude: () => centroidLat,
+    getLongitude: () => centroidLon,
+  } as TrackPoint
+
+  const maxDistFromCentroid = Math.max(
+    ...pts.map((p) => calculateDistance(centroid, p)),
+  )
+  return maxDistFromCentroid >= opts.maxStationaryRadius
+}
+
+function calculateDistance(a: TrackPoint, b: TrackPoint): number {
+  const lat1 = a.getLatitude() * (Math.PI / 180)
+  const lon1 = a.getLongitude() * (Math.PI / 180)
+  const lat2 = b.getLatitude() * (Math.PI / 180)
+  const lon2 = b.getLongitude() * (Math.PI / 180)
 
   const dLat = lat2 - lat1
   const dLon = lon2 - lon1
 
-  const a =
+  const h =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  const earthRadius = 6371000 // Earth radius in meters
-
-  return earthRadius * c
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
 }
 
-/**
- * Calculates the time difference between two TrackPoints.
- * @param pointA - The first TrackPoint.
- * @param pointB - The second TrackPoint.
- * @returns The time difference in seconds.
- */
-function calculateTimeDifference(
-  pointA: TrackPoint,
-  pointB: TrackPoint,
-): number {
-  if (pointA.time && pointB.time) {
-    return (pointB.time.getTime() - pointA.time.getTime()) / 1000 // Convert milliseconds to seconds
+function calculateTimeDifference(a: TrackPoint, b: TrackPoint): number {
+  if (a.time && b.time) {
+    return (b.time.getTime() - a.time.getTime()) / 1000
   }
   return NaN
 }
 
-/**
- * Interpolates a set of TrackPoints between two valid TrackPoints.
- * @param startPoint - The starting valid TrackPoint.
- * @param endPoint - The ending valid TrackPoint.
- * @param numInterpolatedPoints - The number of points to interpolate.
- * @returns An array of interpolated TrackPoints.
- */
-function interpolatePointsBetween(
-  startPoint: TrackPoint,
-  endPoint: TrackPoint,
-  numInterpolatedPoints: number,
-): TrackPoint[] {
-  const interpolatedPoints: TrackPoint[] = []
+function calculateAngle(a: TrackPoint, b: TrackPoint, c: TrackPoint): number {
+  const ax = a.getLongitude() - b.getLongitude()
+  const ay = a.getLatitude() - b.getLatitude()
+  const cx = c.getLongitude() - b.getLongitude()
+  const cy = c.getLatitude() - b.getLatitude()
 
-  for (let i = 1; i <= numInterpolatedPoints; i++) {
-    const fraction = i / (numInterpolatedPoints + 1)
-
-    const lat =
-      startPoint.getLatitude() +
-      fraction * (endPoint.getLatitude() - startPoint.getLatitude())
-    const lon =
-      startPoint.getLongitude() +
-      fraction * (endPoint.getLongitude() - startPoint.getLongitude())
-    const ele =
-      startPoint.ele !== undefined && endPoint.ele !== undefined
-        ? startPoint.ele + fraction * (endPoint.ele - startPoint.ele)
-        : undefined
-    const time =
-      startPoint.time && endPoint.time
-        ? new Date(
-            startPoint.time.getTime() +
-              fraction * (endPoint.time.getTime() - startPoint.time.getTime()),
-          )
-        : undefined
-
-    const interpolatedPoint = new TrackPoint({
-      attributes: { lat, lon },
-      ele,
-      time,
-    })
-
-    interpolatedPoints.push(interpolatedPoint)
-  }
-
-  return interpolatedPoints
+  const dot = ax * cx + ay * cy
+  const cross = ax * cy - ay * cx
+  return Math.atan2(Math.abs(cross), dot) * (180 / Math.PI)
 }

@@ -1,15 +1,15 @@
 <script lang="ts">
   import * as Table from "$lib/components/ui/table"
-  import type { FeatureCollection, Feature, LineString } from "geojson"
+  import type { FeatureCollection, Feature, Geometry } from "geojson"
   import type { TrackProps } from "./TrackExplorer.svelte"
   import { createEventDispatcher } from "svelte"
 
-  export let tracks: FeatureCollection<LineString, TrackProps>
+  export let tracks: FeatureCollection<Geometry, TrackProps>
 
   const dispatch = createEventDispatcher<{
-    select: Feature<LineString, TrackProps>
-    hover: Feature<LineString, TrackProps>
-    unhover: Feature<LineString, TrackProps>
+    select: Feature<Geometry, TrackProps>
+    hover: Feature<Geometry, TrackProps>
+    unhover: Feature<Geometry, TrackProps>
   }>()
 </script>
 

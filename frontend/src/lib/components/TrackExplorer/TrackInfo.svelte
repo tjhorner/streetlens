@@ -1,12 +1,12 @@
 <script lang="ts">
   import * as Card from "$lib/components/ui/card"
-  import type { Feature, LineString } from "geojson"
+  import type { Feature, Geometry } from "geojson"
   import type { TrackProps } from "./TrackExplorer.svelte"
   import Button from "../ui/button/button.svelte"
   import { FontAwesomeIcon } from "@fortawesome/svelte-fontawesome"
   import { faDownload } from "@fortawesome/free-solid-svg-icons"
 
-  export let track: Feature<LineString, TrackProps>
+  export let track: Feature<Geometry, TrackProps>
 
   function downloadGpx() {
     const gpxUrl = `/api/tracks/${track.id}/gpx`

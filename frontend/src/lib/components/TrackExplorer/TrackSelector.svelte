@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FeatureCollection, Feature, LineString, Polygon } from "geojson"
+  import type { FeatureCollection, Feature, Geometry, LineString, Polygon } from "geojson"
   import type { TrackProps } from "./TrackExplorer.svelte"
   import {
     GeoJSON,
@@ -11,6 +11,7 @@
   } from "svelte-maplibre"
   import type { LayerClickInfo } from "svelte-maplibre/types.svelte"
   import pointToLineDistance from "@turf/point-to-line-distance"
+  import { lineString } from "@turf/helpers"
   import TrackTable from "./TrackTable.svelte"
   import { circle } from "@turf/circle"
   import Legend from "./Legend.svelte"
@@ -19,13 +20,13 @@
   import { type DateValue, CalendarDate, getLocalTimeZone, today, fromAbsolute } from "@internationalized/date"
   import * as Card from "$lib/components/ui/card"
 
-  export let tracks: FeatureCollection<LineString, TrackProps>
-  export let selectedTrack: Feature<LineString, TrackProps> | null = null
+  export let tracks: FeatureCollection<Geometry, TrackProps>
+  export let selectedTrack: Feature<Geometry, TrackProps> | null = null
 
   const map = mapContext().map
 
   let selectionCircle: Feature<Polygon> | undefined
-  let tracksNearSelection: FeatureCollection<LineString, TrackProps> | undefined
+  let tracksNearSelection: FeatureCollection<Geometry, TrackProps> | undefined
 
   let minDate: number = Number.MAX_SAFE_INTEGER
   let maxDate: number = 0
@@ -63,14 +64,24 @@
 
     const clickedPoint = e.detail.event.lngLat
     const nearbyFeatures = tracks.features
-      .filter(
-        (track) =>
-          pointToLineDistance(
-            [clickedPoint.lng, clickedPoint.lat],
-            track.geometry as LineString,
-            { units: "degrees" }
-          ) < searchRadius
-      )
+      .filter((track) => {
+        const point: [number, number] = [clickedPoint.lng, clickedPoint.lat]
+        const opts = { units: "degrees" as const }
+
+        if (track.geometry.type === "MultiLineString") {
+          return track.geometry.coordinates.some(
+            (coords) =>
+              coords.length >= 2 &&
+              pointToLineDistance(point, lineString(coords), opts) < searchRadius
+          )
+        }
+
+        return pointToLineDistance(
+          point,
+          track.geometry as LineString,
+          opts,
+        ) < searchRadius
+      })
       .sort((a, b) => {
         return b.properties?.captureDate - a.properties?.captureDate
       })
@@ -101,7 +112,7 @@
   }
 
   function setHoverState(
-    track: Feature<LineString, TrackProps>,
+    track: Feature<Geometry, TrackProps>,
     hovered: boolean
   ) {
     $map?.setFeatureState(
@@ -110,7 +121,7 @@
     )
   }
 
-  function selectTrack(track: Feature<LineString, TrackProps>) {
+  function selectTrack(track: Feature<Geometry, TrackProps>) {
     tracksNearSelection = undefined
     selectionCircle = undefined
     selectedTrack = track

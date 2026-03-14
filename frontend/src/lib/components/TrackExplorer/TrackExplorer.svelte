@@ -9,16 +9,16 @@
 </script>
 
 <script lang="ts">
-  import type { FeatureCollection, Feature, LineString } from "geojson"
+  import type { FeatureCollection, Feature, Geometry } from "geojson"
   import TrackExplorerMap from "./TrackExplorerMap.svelte"
   import { onMount } from "svelte"
 
-  let tracks: FeatureCollection<LineString, TrackProps> = {
+  let tracks: FeatureCollection<Geometry, TrackProps> = {
     type: "FeatureCollection",
     features: [],
   }
 
-  let selectedTrack: Feature<LineString, TrackProps> | null = null
+  let selectedTrack: Feature<Geometry, TrackProps> | null = null
 
   const filters: { [key: string]: any } = {
     start: new Date(0),
@@ -33,12 +33,14 @@
 
     const response = await fetch(`/api/tracks?${params}`)
     const resp = (await response.json()) as FeatureCollection<
-      LineString,
+      Geometry,
       TrackProps
     >
 
     resp.features = resp.features.filter(
-      (track) => track.geometry.coordinates.length > 1
+      (track) => track.geometry.type === "MultiLineString"
+        ? track.geometry.coordinates.some((line) => line.length > 1)
+        : (track.geometry as any).coordinates?.length > 1
     )
 
     resp.features.forEach((track) => {

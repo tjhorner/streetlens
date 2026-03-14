@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FeatureCollection, Feature, LineString, Point } from "geojson"
+  import type { FeatureCollection, Feature, Geometry, Point } from "geojson"
   import type { TrackProps } from "./TrackExplorer.svelte"
   import {
     CircleLayer,
@@ -23,7 +23,7 @@
     heading: string
   }
 
-  export let track: Feature<LineString, TrackProps>
+  export let track: Feature<Geometry, TrackProps>
   export let trackImages: FeatureCollection<Point, TrackImageProps> = {
     type: "FeatureCollection",
     features: [],

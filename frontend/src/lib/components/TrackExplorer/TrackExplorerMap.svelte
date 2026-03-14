@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FeatureCollection, Feature, LineString } from "geojson"
+  import type { FeatureCollection, Feature, Geometry } from "geojson"
   import type { TrackProps } from "./TrackExplorer.svelte"
   import {
     MapLibre,
@@ -16,8 +16,8 @@
   import GoToCoordsControl from "./GoToCoordsControl.svelte"
   import { mode } from "mode-watcher"
 
-  export let tracks: FeatureCollection<LineString, TrackProps>
-  export let selectedTrack: Feature<LineString, TrackProps> | null = null
+  export let tracks: FeatureCollection<Geometry, TrackProps>
+  export let selectedTrack: Feature<Geometry, TrackProps> | null = null
 
   let map: maplibregl.Map
   let initialZoom = true

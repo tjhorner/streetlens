@@ -1,14 +1,14 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { TracksService } from "../tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
-import { Feature, LineString } from "typeorm"
+import { Feature, MultiLineString } from "typeorm"
 import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
 import { createReadStream } from "fs"
 import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { forwardRef, Inject } from "@nestjs/common"
-import { smoothTrackSegment } from "./gpx-smooth"
+import { smoothTrackSegments } from "./gpx-smooth"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
 import { TRACK_IMPORT_QUEUE } from "../queues.constants"
@@ -77,7 +77,7 @@ export class TrackImportProcessor extends WorkerHost {
       captureDate,
       filePath: job.data.filePath,
       fileHash: hash,
-      geometry: gpxData.geometry as LineString,
+      geometry: gpxData.geometry as MultiLineString,
     })
 
     this.eventEmitter.emit("track.imported", {
@@ -118,14 +118,23 @@ export class TrackImportProcessor extends WorkerHost {
     const gpxData = parseGPX(gpxFile)
 
     const segment = gpxData.getSegment(0, 0)
-    const smoothedSegment = smoothTrackSegment(segment)
+    const smoothedSegments = smoothTrackSegments(segment)
 
-    const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
-    const points = simplifiedPoints.filter(
-      (point) => point.distance === undefined || point.distance >= 1,
-    )
+    const lines = smoothedSegments
+      .map((seg) => {
+        const simplified = ramerDouglasPeucker(seg.trkpt, 1)
+        return simplified
+          .filter(
+            (point) => point.distance === undefined || point.distance >= 1,
+          )
+          .map((point) => [
+            point.point.getLongitude(),
+            point.point.getLatitude(),
+          ])
+      })
+      .filter((coords) => coords.length >= 2)
 
-    if (points.length < 5) {
+    if (lines.length === 0 || lines.reduce((sum, l) => sum + l.length, 0) < 5) {
       throw new Error("Cleaned GPX yielded insignificant data")
     }
 
@@ -133,11 +142,8 @@ export class TrackImportProcessor extends WorkerHost {
       type: "Feature",
       properties: {},
       geometry: {
-        type: "LineString",
-        coordinates: points.map((point) => [
-          point.point.getLongitude(),
-          point.point.getLatitude(),
-        ]),
+        type: "MultiLineString",
+        coordinates: lines,
       },
     }
   }

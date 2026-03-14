@@ -70,6 +70,12 @@ export class TracksController {
     return jobs.map((job) => job.id)
   }
 
+  @Post("reprocess-all")
+  async reprocessAll() {
+    const jobs = await this.tracksService.reprocessAll()
+    return jobs.map((job) => job.id)
+  }
+
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
     const track = await this.tracksService.get(id)

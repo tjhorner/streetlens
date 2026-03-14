@@ -2,7 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  LineString,
+  Geometry,
   OneToMany,
   PrimaryGeneratedColumn,
   VirtualColumn,
@@ -31,7 +31,7 @@ export class Track {
   fileHash: string
 
   @Column("geometry")
-  geometry: LineString
+  geometry: Geometry
 
   @VirtualColumn({
     type: "bool",

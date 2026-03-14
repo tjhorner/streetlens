@@ -144,6 +144,16 @@ export class TracksService {
     })
   }
 
+  async reprocessAll() {
+    const tracks = await this.tracksRepository.find()
+    const jobs = tracks.map((track) => ({
+      name: track.id.toString(),
+      data: { filePath: track.filePath, force: true },
+    }))
+
+    return this.trackImportQueue.addBulk(jobs)
+  }
+
   @OnEvent("track.imported")
   handleTrackImported({ id }: { id: number; name: string }) {
     this.imageImportQueue.add(id.toString(), { trackId: id })
