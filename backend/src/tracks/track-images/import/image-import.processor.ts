@@ -34,8 +34,6 @@ export class ImageImportProcessor extends WorkerHost {
       path.basename(videoPath, path.extname(videoPath)),
     )
 
-    await this.extractFrames(videoPath, outDir)
-
     const imageDescriptions = await this.extractFrames(videoPath, outDir)
     const images = imageDescriptions.map(
       (imageDescription, index): Partial<TrackImage> => ({
