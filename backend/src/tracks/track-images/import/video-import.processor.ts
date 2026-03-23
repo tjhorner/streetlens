@@ -8,14 +8,14 @@ import { TracksService } from "../../tracks.service"
 import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
+import { VIDEO_IMPORT_QUEUE } from "src/tracks/queues.constants"
 
-export interface ImageImportPayload {
+export interface VideoImportPayload {
   trackId: number
 }
 
-@Processor(IMAGE_IMPORT_QUEUE)
-export class ImageImportProcessor extends WorkerHost {
+@Processor(VIDEO_IMPORT_QUEUE)
+export class VideoImportProcessor extends WorkerHost {
   constructor(
     @Inject(forwardRef(() => TracksService))
     private readonly tracksService: TracksService,
@@ -24,7 +24,7 @@ export class ImageImportProcessor extends WorkerHost {
     super()
   }
 
-  async process(job: Job<ImageImportPayload>): Promise<any> {
+  async process(job: Job<VideoImportPayload>): Promise<any> {
     const trackId = job.data.trackId
     const track = await this.tracksService.get(trackId)
     const videoPath = track.filePath
