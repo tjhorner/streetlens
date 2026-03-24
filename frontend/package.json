@@ -31,6 +31,7 @@
 		"@fortawesome/free-solid-svg-icons": "^6.6.0",
 		"@fortawesome/svelte-fontawesome": "^0.2.2",
 		"@internationalized/date": "^3.5.5",
+		"@rollup/rollup-linux-x64-gnu": "^4.21.3",
 		"@turf/bbox": "^7.1.0",
 		"@turf/circle": "^7.1.0",
 		"@turf/point-to-line-distance": "^7.1.0",
