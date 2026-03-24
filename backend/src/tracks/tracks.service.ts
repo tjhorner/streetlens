@@ -9,10 +9,10 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { DeepPartial, Repository } from "typeorm"
 import { TrackImportPayload } from "./import/track-import.processor"
-import { ImageImportPayload } from "./track-images/import/image-import.processor"
+import { VideoImportPayload } from "./track-images/import/video-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
-import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
+import { VIDEO_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
 
 export interface TrackFilters {
   start?: Date
@@ -33,8 +33,8 @@ export class TracksService {
     @InjectQueue(TRACK_IMPORT_QUEUE)
     private trackImportQueue: Queue<TrackImportPayload>,
 
-    @InjectQueue(IMAGE_IMPORT_QUEUE)
-    private imageImportQueue: Queue<ImageImportPayload>,
+    @InjectQueue(VIDEO_IMPORT_QUEUE)
+    private videoImportQueue: Queue<VideoImportPayload>,
   ) {}
 
   list(filters: TrackFilters = {}): Promise<Track[]> {
@@ -156,11 +156,11 @@ export class TracksService {
 
   @OnEvent("track.imported")
   handleTrackImported({ id }: { id: number; name: string }) {
-    this.imageImportQueue.add(id.toString(), { trackId: id })
+    this.videoImportQueue.add(id.toString(), { trackId: id })
   }
 
-  async startImageImport(trackId: number) {
-    return this.imageImportQueue.add(trackId.toString(), { trackId })
+  async startVideoImport(trackId: number) {
+    return this.videoImportQueue.add(trackId.toString(), { trackId })
   }
 
   async processMissingImages() {
@@ -176,7 +176,7 @@ export class TracksService {
       data: { trackId: track.id },
     }))
 
-    return this.imageImportQueue.addBulk(jobs)
+    return this.videoImportQueue.addBulk(jobs)
   }
 
   toGeoJSON<T extends Feature>(tracks: { toGeoJSON(): T }[]) {

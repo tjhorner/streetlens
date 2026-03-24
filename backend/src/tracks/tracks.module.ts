@@ -5,12 +5,12 @@ import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { TrackImportProcessor } from "./import/track-import.processor"
 import { ImagesController } from "./track-images/images.controller"
-import { ImageImportProcessor } from "./track-images/import/image-import.processor"
+import { VideoImportProcessor } from "./track-images/import/video-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
 import { TracksController } from "./tracks.controller"
 import { TracksService } from "./tracks.service"
-import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
+import { VIDEO_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
         name: TRACK_IMPORT_QUEUE,
       },
       {
-        name: IMAGE_IMPORT_QUEUE,
+        name: VIDEO_IMPORT_QUEUE,
       },
     ),
     BullBoardModule.forFeature(
@@ -29,12 +29,12 @@ import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
         adapter: BullMQAdapter,
       },
       {
-        name: IMAGE_IMPORT_QUEUE,
+        name: VIDEO_IMPORT_QUEUE,
         adapter: BullMQAdapter,
       },
     ),
   ],
-  providers: [TracksService, TrackImportProcessor, ImageImportProcessor],
+  providers: [TracksService, TrackImportProcessor, VideoImportProcessor],
   controllers: [TracksController, ImagesController],
   exports: [TracksService],
 })
