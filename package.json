@@ -3,7 +3,7 @@
   "scripts": {
     "dev:frontend": "npm -w frontend run dev",
     "dev:backend": "npm -w backend run start:dev",
-    "dev": "concurrently npm:dev:frontend npm:dev:backend"
+    "dev": "npx concurrently npm:dev:frontend npm:dev:backend"
   },
   "workspaces": [
     "backend",
