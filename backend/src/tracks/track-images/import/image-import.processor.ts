@@ -14,6 +14,7 @@ import { Track } from "src/tracks/track.entity"
 import { TrackPoint, TrackSegment, Track as GPXTrack, GPXFile } from "src/vendor/gpx"
 import { smoothTrackSegment } from "src/tracks/import/gpx-smooth"
 import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
+import { ExifTool, ExifDateTime } from "exiftool-vendored";
 
 
 export interface ImageImportPayload {
@@ -24,17 +25,21 @@ export interface ImageImportPayload {
 export interface GpxPoint {
   lat: number
   lon: number
-  time: string
+  time: Date
 }
 
 @Processor(IMAGE_IMPORT_QUEUE)
 export class ImageImportProcessor extends WorkerHost {
+  exiftool: ExifTool;
   constructor(
     @Inject(forwardRef(() => TracksService))
     private readonly tracksService: TracksService,
     private readonly eventEmitter: EventEmitter2,
   ) {
     super()
+    this.exiftool = new ExifTool();
+    process.on("SIGINT", () => this.exiftool.end());
+    process.on("SIGTERM", () => this.exiftool.end());
   }
 
   @OnWorkerEvent("failed")
@@ -88,7 +93,7 @@ export class ImageImportProcessor extends WorkerHost {
 
     this.tracksService.createImages([{
       sequenceNumber: index,
-      captureDate: this.parseGPXDate(gpxPoint.time),
+      captureDate: gpxPoint.time,
       filePath: job.data.filePath,
       location: {
         type: "Point",
@@ -110,7 +115,7 @@ export class ImageImportProcessor extends WorkerHost {
     await this.tracksService.upsert({
       id: track.id,
       name: track.name,
-      captureDate: this.parseGPXDate(gpxPoint.time),
+      captureDate: gpxPoint.time,
       filePath: track.filePath,
       fileHash: hash,
       geometry: gpxFeature.geometry as LineString,
@@ -130,37 +135,20 @@ export class ImageImportProcessor extends WorkerHost {
     return new Date(date)
   }
 
+  private toNumber(string_or_number: string | number): number {
+    return Number(string_or_number)
+  }
+
+  private toDate(string_or_exif_date_time: string | ExifDateTime): Date {
+    const gps_date = ExifDateTime.from(string_or_exif_date_time)
+    return new Date(gps_date.toISOString())
+  }
+
   private async convertToGpx(filePath: string, job: Job): Promise<GpxPoint> {
-    const { stdout, stderr } = await runCmd("exiftool", [
-      "-location:all",
-      "-time:all",
-      "-n",
-      filePath,
-    ])
+    const tags = await this.exiftool.read(filePath)
 
-    await job.log(
-      `exiftool stdout:\n${stdout}\n\nexiftool stderr:\n${stderr}`,
-    )
+    const d: GpxPoint = { 'lat': this.toNumber(tags.GPSLatitude), 'lon': this.toNumber(tags.GPSLongitude), 'time': this.toDate(tags.GPSDateTime) }
 
-    const lines = stdout.trim().split("\n")
-    let d: GpxPoint = { 'lat': null, 'lon': null, 'time': null }
-    for (var row of lines.entries()) {
-      if (row[1].indexOf('GPS Latitude  ') >= 0) {
-        d['lat'] = parseFloat(row[1].split(":", 2)[1].trim())
-      }
-      if (row[1].indexOf('GPS Longitude  ') >= 0) {
-        d['lon'] = parseFloat(row[1].split(":", 2)[1].trim())
-      }
-      if (row[1].indexOf('Date/Time Original') >= 0) {
-        const parts = row[1].split(":")
-        const date = parts[1].trim() + "-" + parts[2].trim() + "-" + parts[3].trim() + ":" + parts[4].trim() + ":" + parts[5].trim()
-        d['time'] = date
-      }
-    }
-
-    await job.log(
-      `Parsed data:\n${JSON.stringify(d)}\n`,
-    )
     if (d['lat'] === null || d['lon'] === null || d['time'] === null) {
       throw new Error(`Could not convert to GPX`)
     }
