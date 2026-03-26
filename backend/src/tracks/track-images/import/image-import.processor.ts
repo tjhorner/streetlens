@@ -1,93 +1,287 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq"
-import { Job } from "bullmq"
-import { runCmd } from "src/util/run-command"
-import { MapillaryImageDescription } from "./mapillary-metadata"
-import path from "path"
-import * as fs from "fs/promises"
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { TracksService } from "../../tracks.service"
-import { TrackImage } from "../track-image.entity"
-import { Inject, forwardRef } from "@nestjs/common"
+import { Job, UnrecoverableError } from "bullmq"
+import { Feature, LineString } from "typeorm"
+import { createReadStream } from "fs"
+import * as crypto from "crypto"
+import * as fs from "fs/promises"
+import * as path from "path"
+import { forwardRef, Inject } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
+import { runCmd } from "src/util/run-command"
 import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
+import { Track } from "src/tracks/track.entity"
+import { TrackPoint, TrackSegment, Track as GPXTrack, GPXFile } from "src/vendor/gpx"
+import { smoothTrackSegment } from "src/tracks/import/gpx-smooth"
+import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
+import { ExifTool, ExifDateTime } from "exiftool-vendored";
+
 
 export interface ImageImportPayload {
-  trackId: number
+  filePath: string
+  force?: boolean
+}
+
+export interface GpxPoint {
+  lat: number
+  lon: number
+  time: Date
 }
 
 @Processor(IMAGE_IMPORT_QUEUE)
 export class ImageImportProcessor extends WorkerHost {
+  exiftool: ExifTool;
   constructor(
     @Inject(forwardRef(() => TracksService))
     private readonly tracksService: TracksService,
     private readonly eventEmitter: EventEmitter2,
   ) {
     super()
+    this.exiftool = new ExifTool();
+    process.on("SIGINT", () => this.exiftool.end());
+    process.on("SIGTERM", () => this.exiftool.end());
   }
 
-  async process(job: Job<ImageImportPayload>): Promise<any> {
-    const trackId = job.data.trackId
-    const track = await this.tracksService.get(trackId)
-    const videoPath = track.filePath
-
-    const outDir = path.join(
-      path.dirname(videoPath),
-      path.basename(videoPath, path.extname(videoPath)),
-    )
-
-    const imageDescriptions = await this.extractFrames(videoPath, outDir)
-    const images = imageDescriptions.map(
-      (imageDescription, index): Partial<TrackImage> => ({
-        sequenceNumber: index,
-        captureDate: this.parseMapillaryDate(imageDescription.MAPCaptureTime),
-        filePath: imageDescription.filename,
-        location: {
-          type: "Point",
-          coordinates: [
-            imageDescription.MAPLongitude,
-            imageDescription.MAPLatitude,
-          ],
-        },
-        heading: imageDescription.MAPCompassHeading?.TrueHeading,
-        track,
-      }),
-    )
-
-    await this.tracksService.createImages(images)
-
-    this.eventEmitter.emit("track.imagesImported", {
-      id: track.id,
-      name: track.name,
-      imageCount: images.length,
+  @OnWorkerEvent("failed")
+  onFailure(job: Job<ImageImportPayload>, error: Error) {
+    this.eventEmitter.emit("image.importFailure", {
+      filePath: job.data.filePath,
+      error: error.message,
     })
   }
 
-  private parseMapillaryDate(date: string): Date {
-    const iso = date.replace(
-      /(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{3})/,
-      "$1-$2-$3T$4:$5:$6.$7",
-    )
+  async process(job: Job<ImageImportPayload>): Promise<any> {
+    console.log(`Processing for ${job.data.filePath}`)
+    await job.updateProgress({
+      status: "Obtaining file hash",
+    })
 
-    return new Date(iso)
+    const hash = await this.getFileHash(job.data.filePath)
+
+    if (!job.data.force) {
+      const alreadyExists = await this.tracksService.existsByFileHash(hash)
+      if (alreadyExists) {
+        throw new UnrecoverableError("File has already been processed")
+      }
+    }
+
+    const parts = path.basename(job.data.filePath).split('.')
+    const date = parts[1]
+    const hash_path = parts[1] + '_' + parts[3].substring(0, 4)
+    const index = parseInt(parts[3].substring(4))
+
+    var track = await this.tracksService.getByPath(hash_path)
+    if (!track) {
+      const empty_array: LineString = {
+        type: "LineString",
+        coordinates: [],
+      }
+      track = await this.tracksService.create({
+        name: hash_path,
+        captureDate: date,
+        filePath: hash_path,
+        fileHash: hash,
+        geometry: empty_array,
+      })
+    }
+
+    await job.updateProgress({
+      status: "Extracting GPX data",
+    })
+
+    const gpxPoint: GpxPoint = await this.convertToGpx(job.data.filePath, job)
+
+    this.tracksService.createImages([{
+      sequenceNumber: index,
+      captureDate: gpxPoint.time,
+      filePath: job.data.filePath,
+      location: {
+        type: "Point",
+        coordinates: [
+          gpxPoint.lon,
+          gpxPoint.lat,
+        ],
+      },
+      heading: 0,
+      track,
+    }])
+
+    await job.updateProgress({
+      status: "Finalizing import",
+    })
+
+    const gpxFeature: Feature = await this.processGpxData(track)
+
+    await this.tracksService.upsert({
+      id: track.id,
+      name: track.name,
+      captureDate: gpxPoint.time,
+      filePath: track.filePath,
+      fileHash: hash,
+      geometry: gpxFeature.geometry as LineString,
+    })
+
+    // this.eventEmitter.emit("image.imported", {
+    //   id: track.id,
+    //   name: track.name,
+    // })
+
+    return {
+      id: job.data.filePath,
+    }
   }
 
-  private async extractFrames(
-    videoPath: string,
-    outDir: string,
-  ): Promise<MapillaryImageDescription[]> {
-    await runCmd("mapillary_tools", [
-      "video_process",
-      "--video_sample_distance",
-      "10",
-      videoPath,
-      outDir,
-    ])
+  private parseGPXDate(date: string): Date {
+    return new Date(date)
+  }
 
-    const imageDescriptionPath = path.join(
-      outDir,
-      "mapillary_image_description.json",
+  private toNumber(string_or_number: string | number): number {
+    return Number(string_or_number)
+  }
+
+  private toDate(string_or_exif_date_time: string | ExifDateTime): Date {
+    const gps_date = ExifDateTime.from(string_or_exif_date_time)
+    return new Date(gps_date.toISOString())
+  }
+
+  private async convertToGpx(filePath: string, job: Job): Promise<GpxPoint> {
+    const tags = await this.exiftool.read(filePath)
+
+    const d: GpxPoint = { 'lat': this.toNumber(tags.GPSLatitude), 'lon': this.toNumber(tags.GPSLongitude), 'time': this.toDate(tags.GPSDateTime) }
+
+    if (d['lat'] === null || d['lon'] === null || d['time'] === null) {
+      throw new Error(`Could not convert to GPX`)
+    }
+
+    return d
+  }
+
+  private async processGpxData(track: Track): Promise<Feature> {
+
+    const track_images = await this.tracksService.getImages(track.id)
+    const allPoints: number[][] = track_images.map((image) => (
+      image.location.coordinates
+    ))
+
+    if (allPoints.length > 1) {
+      const headings: number[] = await this.computeHeadings(allPoints)
+      const track_images_to_update = []
+      for (let i = 0; i < headings.length; i++) {
+        // Decimals get returned from DB as strings, so cast to Number
+        const heading = Number(track_images[i].heading)
+        if (heading !== headings[i]) {
+          console.log(`Updating heading for image ${track_images[i].sequenceNumber} from ${heading} to ${headings[i]}`)
+          track_images[i].heading = headings[i]
+          track_images_to_update.push(track_images[i])
+        }
+      }
+      if (track_images_to_update.length > 0) {
+        await Promise.all(track_images_to_update.map(async (image) => {
+          await this.tracksService.upsertImage(image)
+        }))
+      }
+    }
+    const trackpoints = allPoints.map((point, index): TrackPoint => (new TrackPoint(
+      {
+        attributes: {lon: point[0], lat: point[1]},
+        time: track_images[index].captureDate,
+      }
+    )))
+    const segment = new TrackSegment({trkpt: trackpoints})
+    //const gpx_track = new GPXTrack({trkseg: [segment]})
+    //const gpx_file = new GPXFile({trk: [gpx_track], rte: [], wpt: [], attributes: null, metadata: null})
+
+    const smoothedSegment = smoothTrackSegment(segment)
+
+    const simplifiedPoints = ramerDouglasPeucker(smoothedSegment.trkpt, 1)
+    const points = simplifiedPoints.filter(
+      (point) => point.distance === undefined || point.distance >= 1,
     )
 
-    const imageDescriptions = await fs.readFile(imageDescriptionPath, "utf-8")
-    return JSON.parse(imageDescriptions)
+    var finalPoints: number[][] = points.map((point) => [
+        point.point.getLongitude(),
+        point.point.getLatitude(),
+      ]
+    )
+    if (finalPoints.length < 5) {
+      console.log("Cleaned GPX yielded insignificant data, reverting to original")
+      finalPoints = allPoints
+    }
+
+    console.log(`Processed ${allPoints.length} points for track ${track.id}`)
+
+    return {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "LineString",
+        coordinates: finalPoints,
+      },
+    }
+  }
+
+  private async computeHeadings(points: number[][]): Promise<number[]> {
+    const headings: number[] = []
+    for (let i = 0; i < points.length - 1; i++) {
+      const [lon1, lat1] = points[i]
+      const [lon2, lat2] = points[i + 1]
+
+      const heading = this.calculateBearing(lat1, lon1, lat2, lon2)
+      headings.push(heading)
+    }
+    headings.push(headings[headings.length - 1]) // Repeat last heading
+    return headings
+  }
+
+  private calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRadians = (deg: number) => (deg * Math.PI) / 180
+    const toDegrees = (rad: number) => (rad * 180) / Math.PI
+
+    const dLon = toRadians(lon2 - lon1)
+    const y = Math.sin(dLon) * Math.cos(toRadians(lat2))
+    const x =
+      Math.cos(toRadians(lat1)) * Math.sin(toRadians(lat2)) -
+      Math.sin(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.cos(dLon)
+    let bearing = toDegrees(Math.atan2(y, x))
+    bearing = (bearing + 360) % 360 // Normalize to 0-360
+    return bearing
+  }
+
+  private async getCaptureDate(filePath: string): Promise<Date> {
+    const { stdout } = await runCmd("ffprobe", [
+      "-v",
+      "quiet",
+      "-print_format",
+      "json",
+      "-show_format",
+      filePath,
+    ])
+
+    const data = JSON.parse(stdout)
+    if (data.format?.tags?.creation_time) {
+      const creationTime = data.format.tags.creation_time as string
+      return new Date(creationTime.replace("Z", ""))
+    }
+
+    const { birthtime } = await fs.stat(filePath)
+    return birthtime
+  }
+
+  private getFileHash(filePath: string): Promise<string> {
+    const fd = createReadStream(filePath)
+    const hash = crypto.createHash("sha256")
+    hash.setEncoding("hex")
+
+    const promise = new Promise<string>((resolve, reject) => {
+      fd.once("end", () => {
+        hash.end()
+        resolve(hash.read())
+      })
+
+      fd.once("error", reject)
+    })
+
+    fd.pipe(hash)
+    return promise
   }
 }

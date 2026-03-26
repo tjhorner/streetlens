@@ -10,9 +10,10 @@ import * as path from "node:path"
 import { DeepPartial, Repository } from "typeorm"
 import { TrackImportPayload } from "./import/track-import.processor"
 import { ImageImportPayload } from "./track-images/import/image-import.processor"
+import { VideoImportPayload } from "./track-images/import/video-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
-import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
+import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE, VIDEO_IMPORT_QUEUE } from "./queues.constants"
 
 export interface TrackFilters {
   start?: Date
@@ -32,6 +33,9 @@ export class TracksService {
 
     @InjectQueue(TRACK_IMPORT_QUEUE)
     private trackImportQueue: Queue<TrackImportPayload>,
+
+    @InjectQueue(VIDEO_IMPORT_QUEUE)
+    private videoImportQueue: Queue<VideoImportPayload>,
 
     @InjectQueue(IMAGE_IMPORT_QUEUE)
     private imageImportQueue: Queue<ImageImportPayload>,
@@ -87,6 +91,12 @@ export class TracksService {
     return this.tracksRepository.findOneBy({ id })
   }
 
+  async getByPath(filePath: string): Promise<Track> {
+    return this.tracksRepository.findOne({
+      where: { filePath: filePath }
+    })
+  }
+
   async create(track: DeepPartial<Track>): Promise<Track> {
     return this.tracksRepository.save(track)
   }
@@ -110,6 +120,23 @@ export class TracksService {
 
   async createImages(images: DeepPartial<TrackImage>[]): Promise<TrackImage[]> {
     return this.trackImagesRepository.save(images)
+  }
+
+  async upsertImage(image: DeepPartial<TrackImage>): Promise<TrackImage> {
+    const existing = await this.trackImagesRepository.findOne({
+      where: {
+        id: image.id,
+      }
+    })
+
+    if (existing) {
+      return this.trackImagesRepository.save({
+        ...existing,
+        ...image,
+      })
+    }
+
+    return this.trackImagesRepository.save(image)
   }
 
   async upsert(track: DeepPartial<Track>) {
@@ -138,10 +165,16 @@ export class TracksService {
       throw new Error(`File not found: ${filePath}`)
     }
 
-    return this.trackImportQueue.add(path.basename(filePath), {
-      filePath,
-      force,
-    })
+    if (filePath.endsWith('.360')) {
+      return this.trackImportQueue.add(path.basename(filePath), {
+        filePath,
+        force,
+      })
+    } else {
+      return this.imageImportQueue.add(path.basename(filePath), {
+        filePath, force
+      })
+    }
   }
 
   async reprocessAll() {
@@ -156,11 +189,11 @@ export class TracksService {
 
   @OnEvent("track.imported")
   handleTrackImported({ id }: { id: number; name: string }) {
-    this.imageImportQueue.add(id.toString(), { trackId: id })
+    this.videoImportQueue.add(id.toString(), { trackId: id })
   }
 
-  async startImageImport(trackId: number) {
-    return this.imageImportQueue.add(trackId.toString(), { trackId })
+  async startVideoImport(trackId: number) {
+    return this.videoImportQueue.add(trackId.toString(), { trackId })
   }
 
   async processMissingImages() {
@@ -176,7 +209,7 @@ export class TracksService {
       data: { trackId: track.id },
     }))
 
-    return this.imageImportQueue.addBulk(jobs)
+    return this.videoImportQueue.addBulk(jobs)
   }
 
   toGeoJSON<T extends Feature>(tracks: { toGeoJSON(): T }[]) {

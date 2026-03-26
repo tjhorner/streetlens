@@ -15,19 +15,19 @@ export class TrackWatcherService {
 
   @OnEvent("file.added")
   async onFileAdded(filePath: string) {
-    if (!filePath.endsWith(".360")) {
-      return
+    this.logger.log(`New file detected; considering ${filePath}`)
+    const path_lower = filePath.toLowerCase()
+    if (path_lower.endsWith(".360") || path_lower.endsWith('.jpg')) {
+      this.logger.log(`New file detected; import queued for ${filePath}`)
+
+      const fileName = path.basename(filePath)
+      this.notificationsService.sendNotification(
+        "Import Queued",
+        `New file detected; import queued for ${fileName}`,
+        "info",
+      )
+
+      await this.tracksService.startImport(filePath)
     }
-
-    this.logger.log(`New file detected; import queued for ${filePath}`)
-
-    const fileName = path.basename(filePath)
-    this.notificationsService.sendNotification(
-      "Import Queued",
-      `New file detected; import queued for ${fileName}`,
-      "info",
-    )
-
-    await this.tracksService.startImport(filePath)
   }
 }
