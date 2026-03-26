@@ -16,7 +16,8 @@ export class TrackWatcherService {
   @OnEvent("file.added")
   async onFileAdded(filePath: string) {
     this.logger.log(`New file detected; considering ${filePath}`)
-    if (filePath.endsWith(".360") || filePath.endsWith('.JPG')) {
+    const path_lower = filePath.toLowerCase()
+    if (path_lower.endsWith(".360") || path_lower.endsWith('.jpg')) {
       this.logger.log(`New file detected; import queued for ${filePath}`)
 
       const fileName = path.basename(filePath)
