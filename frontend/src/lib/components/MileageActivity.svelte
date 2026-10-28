@@ -4,7 +4,9 @@
 
   export let activity: { date: string; distanceMeters: number }[]
 
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const today = Date.UTC(currentYear, now.getMonth(), now.getDate())
   let year = currentYear
   let tooltip: HTMLDivElement
   let tooltipText = ""
@@ -50,11 +52,12 @@
   function makeDays(selectedYear: number, values: Map<string, number>) {
     const first = new Date(Date.UTC(selectedYear, 0, 1))
     const last = new Date(Date.UTC(selectedYear, 11, 31))
-    const cells: ({ date: Date; meters: number; label: string } | null)[] = Array(first.getUTCDay()).fill(null)
+    const cells: ({ date: Date; meters: number; label: string; future: boolean } | null)[] = Array(first.getUTCDay()).fill(null)
     for (let time = first.getTime(); time <= last.getTime(); time += 86_400_000) {
       const date = new Date(time)
       const meters = values.get(key(date)) ?? 0
-      cells.push({ date, meters, label: `${date.toLocaleDateString(undefined, { dateStyle: "long", timeZone: "UTC" })}: ${miles(meters)} miles` })
+      const future = time > today
+      cells.push({ date, meters, future, label: `${date.toLocaleDateString(undefined, { dateStyle: "long", timeZone: "UTC" })}: ${future ? "Future date" : `${miles(meters)} miles`}` })
     }
     while (cells.length % 7) cells.push(null)
     return cells
@@ -106,9 +109,16 @@
           <div class="grid min-w-0 flex-1 grid-flow-col grid-rows-7 gap-[3px]" style:grid-template-columns={`repeat(${days.length / 7}, minmax(0, 1fr))`}>
             {#each days as day}
               {#if day}
+                {#if day.future}
+                  <span
+                    class="aspect-square w-full rounded-sm border border-dashed border-muted-foreground/40"
+                    aria-label={day.label}
+                    role="img"
+                  ></span>
+                {:else}
                 <button
                     type="button"
-                    class="aspect-square w-full rounded-sm ring-inset ring-1 ring-black/5 dark:ring-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    class="aspect-square w-full rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground ring-inset ring-1 ring-black/5 dark:ring-white/10"
                     style={day.meters > 0
                       ? `background: color-mix(in oklab, var(--activity-low), var(--activity-high) ${day.meters / maximum * 100}%)`
                       : "background: hsl(var(--muted))"}
@@ -120,6 +130,7 @@
                     on:blur={hideTooltip}
                     on:click={(event) => showTooltip(event, day)}
                 ></button>
+                {/if}
               {:else}
                 <span class="aspect-square w-full" aria-hidden="true"></span>
               {/if}
