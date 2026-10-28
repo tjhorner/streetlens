@@ -1,1 +1,6 @@
 screenshots
+node_modules
+**/node_modules
+backend/dist
+frontend/build
+frontend/.svelte-kit
