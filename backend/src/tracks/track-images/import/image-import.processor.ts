@@ -7,7 +7,8 @@ import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
-import { readGpmfPackets } from "src/gpmf/telemetry"
+import { PROCESSOR_VERSION } from "src/tracks/processor-version"
+import { GpmfPacket, readDeviceName, readGpmfPackets } from "src/gpmf/telemetry"
 import { extractGpsSamples } from "src/gpmf/gps"
 import {
   FramePosition,
@@ -16,8 +17,12 @@ import {
 } from "src/video/frame-sampling"
 import {
   extractEquirectangularFrames,
+  FrameToExtract,
   readFrameTimes,
 } from "src/video/frame-extraction"
+import { extractOrientationSamples } from "src/gpmf/orientation"
+import { computeFrameRotations } from "src/video/frame-orientation"
+import { writeImageMetadata } from "src/video/image-metadata"
 
 export interface ImageImportPayload {
   trackId: number
@@ -44,8 +49,14 @@ export class ImageImportProcessor extends WorkerHost {
       "frames",
     )
 
-    const frames = await this.selectFrames(videoPath, job)
-    const imagePaths = await this.extractFrames(videoPath, framesDir, frames)
+    const packets = await readGpmfPackets(videoPath)
+    const frames = await this.selectFrames(videoPath, packets, job)
+    const imagePaths = await this.extractFrames(
+      videoPath,
+      framesDir,
+      frames,
+      readDeviceName(packets),
+    )
 
     const images = frames.map(
       (frame, index): Partial<TrackImage> => ({
@@ -57,6 +68,7 @@ export class ImageImportProcessor extends WorkerHost {
           coordinates: [frame.longitude, frame.latitude],
         },
         heading: frame.heading,
+        processorVersion: PROCESSOR_VERSION,
         track,
       }),
     )
@@ -72,12 +84,16 @@ export class ImageImportProcessor extends WorkerHost {
 
   private async selectFrames(
     videoPath: string,
+    packets: GpmfPacket[],
     job: Job<ImageImportPayload>,
-  ): Promise<FramePosition[]> {
-    const samples = extractGpsSamples(await readGpmfPackets(videoPath))
-    const segments = segmentGpsSamples(samples)
+  ): Promise<(FramePosition & FrameToExtract)[]> {
+    const segments = segmentGpsSamples(extractGpsSamples(packets))
     const frameTimes = await readFrameTimes(videoPath)
     const frames = sampleFramesByDistance(segments, frameTimes)
+    const rotations = computeFrameRotations(
+      frames,
+      extractOrientationSamples(packets),
+    )
 
     await job.log(
       `Selected ${frames.length} of ${frameTimes.length} frames from ${segments.length} GPS segments`,
@@ -87,13 +103,14 @@ export class ImageImportProcessor extends WorkerHost {
       throw new UnrecoverableError("No frames with usable GPS data")
     }
 
-    return frames
+    return frames.map((frame, i) => ({ ...frame, rotation: rotations[i] }))
   }
 
   private async extractFrames(
     videoPath: string,
     framesDir: string,
-    frames: FramePosition[],
+    frames: (FramePosition & FrameToExtract)[],
+    cameraModel: string | undefined,
   ): Promise<string[]> {
     const wipDir = `${framesDir}.wip`
     await fs.rm(wipDir, { recursive: true, force: true })
@@ -103,6 +120,10 @@ export class ImageImportProcessor extends WorkerHost {
         videoPath,
         wipDir,
         frames,
+      )
+      await writeImageMetadata(
+        wipPaths.map((imagePath, i) => ({ path: imagePath, frame: frames[i] })),
+        cameraModel,
       )
 
       await fs.rm(framesDir, { recursive: true, force: true })

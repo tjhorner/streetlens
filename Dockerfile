@@ -29,7 +29,7 @@ RUN npm run build --workspace frontend
 
 FROM node:current-alpine
 
-RUN apk add --no-cache pipx ffmpeg mesa-va-gallium
+RUN apk add --no-cache pipx ffmpeg mesa-va-gallium perl
 RUN pipx install apprise
 ENV PATH="$PATH:/root/.local/bin"
 

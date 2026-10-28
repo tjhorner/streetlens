@@ -1,6 +1,10 @@
 import { GpsSample } from "../gpmf/gps"
 import { sampleFramesByDistance } from "./frame-sampling"
-import { buildSelectExpression, splitIntoRuns } from "./frame-extraction"
+import {
+  buildRotationCommands,
+  buildSelectExpression,
+  splitIntoRuns,
+} from "./frame-extraction"
 
 const METERS_PER_DEGREE_LATITUDE = 111195
 
@@ -79,5 +83,23 @@ describe("splitIntoRuns", () => {
     expect(
       splitIntoRuns(frames, 10).map((run) => run.map((f) => f.videoTime)),
     ).toEqual([[0, 1.5, 3], [20, 21.5], [40]])
+  })
+})
+
+describe("buildRotationCommands", () => {
+  it("resets the rotation before setting each frame's angles", () => {
+    expect(
+      buildRotationCommands([
+        {
+          frameIndex: 0,
+          videoTime: 1,
+          rotation: { yaw: 10, pitch: -5, roll: 2.5 },
+        },
+        { frameIndex: 30, videoTime: 2 },
+      ]),
+    ).toBe(
+      "0.990000 v360@rotate reset_rot 1, v360@rotate yaw 10.000, v360@rotate pitch -5.000, v360@rotate roll 2.500;\n" +
+        "1.990000 v360@rotate reset_rot 1, v360@rotate yaw 0.000, v360@rotate pitch 0.000, v360@rotate roll 0.000;",
+    )
   })
 })

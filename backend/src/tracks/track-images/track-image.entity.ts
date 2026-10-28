@@ -8,6 +8,7 @@ import {
 } from "typeorm"
 import { Track } from "../track.entity"
 import { feature } from "@turf/helpers"
+import { UNVERSIONED_PROCESSOR_VERSION } from "../processor-version"
 
 @Entity()
 export class TrackImage {
@@ -31,6 +32,9 @@ export class TrackImage {
 
   @Column()
   filePath: string
+
+  @Column({ default: UNVERSIONED_PROCESSOR_VERSION })
+  processorVersion: number
 
   @ManyToOne(() => Track, (track) => track.images)
   track: Track

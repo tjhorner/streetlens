@@ -1,5 +1,5 @@
 import { runCmdForBuffer } from "../util/run-command"
-import { GpmfEntry, parseKlv } from "./klv"
+import { GpmfEntry, parseKlv, readString } from "./klv"
 
 export interface GpmfPacket {
   /** Seconds from the start of the video */
@@ -86,4 +86,13 @@ async function findGpmfStreamIndex(videoPath: string): Promise<number> {
   }
 
   return parseInt(gpmdLine.split(",")[0], 10)
+}
+
+export function readDeviceName(packets: GpmfPacket[]): string | undefined {
+  for (const packet of packets) {
+    for (const device of packet.entries) {
+      const name = device.children?.find((entry) => entry.key === "DVNM")
+      if (device.key === "DEVC" && name) return readString(name)
+    }
+  }
 }

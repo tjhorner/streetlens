@@ -2,8 +2,13 @@ import * as fs from "fs/promises"
 import * as os from "os"
 import * as path from "path"
 import { runCmd, runCmdForBuffer } from "../util/run-command"
+import { FrameRotation } from "./frame-orientation"
 
 const MAX_LENS_STREAMS = [0, 4]
+
+/** Size of the extracted equirectangular images */
+export const PANORAMA_WIDTH = 4032
+export const PANORAMA_HEIGHT = 2016
 
 /** Presentation timestamps (seconds) of every frame in the video stream, in display order. */
 export async function readFrameTimes(
@@ -35,6 +40,7 @@ export interface FrameToExtract {
   frameIndex: number
   /** Presentation timestamp in seconds */
   videoTime: number
+  rotation?: FrameRotation
 }
 
 const MAX_DECODE_GAP_SECONDS = 10
@@ -62,10 +68,13 @@ export async function extractEquirectangularFrames(
     for (const [runIndex, run] of splitIntoRuns(sortedFrames).entries()) {
       const firstFrame = run[0].frameIndex
       const filterPath = path.join(filterDir, `filter-${runIndex}.txt`)
+      const commandsPath = path.join(filterDir, `rotations-${runIndex}.txt`)
+      await fs.writeFile(commandsPath, buildRotationCommands(run))
       await fs.writeFile(
         filterPath,
         buildMaxStitchFilter(
           `select=${buildSelectExpression(run.map((frame) => frame.frameIndex - firstFrame))}`,
+          commandsPath,
           !!vaapiDevice,
         ),
       )
@@ -79,6 +88,8 @@ export async function extractEquirectangularFrames(
         ...hwaccelOptions(vaapiDevice),
         "-seek_timestamp",
         "1",
+        // Keep source timestamps so the rotation commands line up with frame times
+        "-copyts",
         "-ss",
         Math.max(0, run[0].videoTime - SEEK_LEAD_SECONDS).toFixed(6),
         "-i",
@@ -146,6 +157,27 @@ function hwaccelOptions(vaapiDevice: string | undefined): string[] {
     : []
 }
 
+const ROTATION_FILTER = "v360@rotate"
+
+/**
+ * sendcmd script that sets each frame's rotation just before it reaches v360.
+ * Only selected frames pass through, so each command applies to exactly one frame.
+ * v360 adds rotation commands to its current rotation, so each frame resets it first.
+ */
+export function buildRotationCommands(frames: FrameToExtract[]): string {
+  return frames
+    .map(({ videoTime, rotation = { yaw: 0, pitch: 0, roll: 0 } }) => {
+      const time = Math.max(0, videoTime - SEEK_LEAD_SECONDS).toFixed(6)
+      const commands = (["yaw", "pitch", "roll"] as const)
+        .map(
+          (axis) => `${ROTATION_FILTER} ${axis} ${rotation[axis].toFixed(3)}`,
+        )
+        .join(", ")
+      return `${time} ${ROTATION_FILTER} reset_rot 1, ${commands};`
+    })
+    .join("\n")
+}
+
 export function buildSelectExpression(sortedIndices: number[]): string {
   if (sortedIndices.length === 0) return "0"
   if (sortedIndices.length === 1) return `eq(n\\,${sortedIndices[0]})`
@@ -154,7 +186,11 @@ export function buildSelectExpression(sortedIndices: number[]): string {
   return `if(lt(n\\,${sortedIndices[middle]})\\,${buildSelectExpression(sortedIndices.slice(0, middle))}\\,${buildSelectExpression(sortedIndices.slice(middle))})`
 }
 
-function buildMaxStitchFilter(selectFilter: string, vaapi: boolean): string {
+function buildMaxStitchFilter(
+  selectFilter: string,
+  rotationCommandsPath: string,
+  vaapi: boolean,
+): string {
   const seamExpression =
     "if(between(X, 0, 64), " +
     "(p((X+64),Y)*(((X+1))/65))" +
@@ -201,7 +237,8 @@ function buildMaxStitchFilter(selectFilter: string, vaapi: boolean): string {
 
   filters.push(
     "[bottom][top]vstack[complete];" +
-      "[complete]v360=eac:e:interp=cubic,crop=4032:2388:x=0:y=0[v]",
+      `[complete]sendcmd=f='${rotationCommandsPath}',` +
+      `${ROTATION_FILTER}=eac:e:interp=cubic:w=${PANORAMA_WIDTH}:h=${PANORAMA_HEIGHT}:rorder=rpy[v]`,
   )
 
   return filters.join(";\n")

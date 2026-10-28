@@ -9,6 +9,7 @@ import {
 } from "typeorm"
 import { TrackImage } from "./track-images/track-image.entity"
 import { feature } from "@turf/helpers"
+import { UNVERSIONED_PROCESSOR_VERSION } from "./processor-version"
 
 @Entity()
 export class Track {
@@ -32,6 +33,9 @@ export class Track {
 
   @Column("geometry")
   geometry: Geometry
+
+  @Column({ default: UNVERSIONED_PROCESSOR_VERSION })
+  processorVersion: number
 
   @VirtualColumn({
     type: "bool",

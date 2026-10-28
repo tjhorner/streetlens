@@ -14,6 +14,7 @@ import { runCmd } from "src/util/run-command"
 import { readGpmfPackets } from "src/gpmf/telemetry"
 import { extractGpsSamples } from "src/gpmf/gps"
 import { TRACK_IMPORT_QUEUE } from "../queues.constants"
+import { PROCESSOR_VERSION } from "../processor-version"
 
 export interface TrackImportPayload {
   filePath: string
@@ -82,6 +83,7 @@ export class TrackImportProcessor extends WorkerHost {
       filePath: job.data.filePath,
       fileHash: hash,
       geometry: gpxData.geometry as MultiLineString,
+      processorVersion: PROCESSOR_VERSION,
     })
 
     this.eventEmitter.emit("track.imported", {
