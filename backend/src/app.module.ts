@@ -9,6 +9,7 @@ import { ImportDirectoriesModule } from "./import-directories/import-directories
 import { TrackWatcherService } from "./track-watcher.service"
 import { NotificationsModule } from "./notifications/notifications.module"
 import { ImportNotifierService } from "./import-notifier.service"
+import { StatisticsModule } from "./statistics/statistics.module"
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ImportNotifierService } from "./import-notifier.service"
     TracksModule,
     ImportDirectoriesModule,
     NotificationsModule,
+    StatisticsModule,
   ],
   providers: [TrackWatcherService, ImportNotifierService],
 })

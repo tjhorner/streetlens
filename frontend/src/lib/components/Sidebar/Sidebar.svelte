@@ -1,5 +1,5 @@
 <script>
-  import { faMap, faCog, faBarsProgress } from "@fortawesome/free-solid-svg-icons"
+  import { faMap, faCog, faBarsProgress, faChartSimple } from "@fortawesome/free-solid-svg-icons"
   import SidebarLink from "./SidebarLink.svelte"
 </script>
 
@@ -14,6 +14,12 @@
     title="Queues"
     icon={faBarsProgress}
     href="/queues"
+  />
+
+  <SidebarLink
+    title="Statistics"
+    icon={faChartSimple}
+    href="/statistics"
   />
 
   <SidebarLink
