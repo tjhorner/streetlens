@@ -76,6 +76,16 @@ export class TracksController {
     return jobs.map((job) => job.id)
   }
 
+  @Get("processor-versions")
+  async getProcessorVersionStatus() {
+    return this.tracksService.getProcessorVersionStatus()
+  }
+
+  @Post("reprocess-outdated")
+  async reprocessOutdated() {
+    return this.tracksService.reprocessOutdated()
+  }
+
   @Get(":id")
   async get(@Param("id", ParseIntPipe) id: number) {
     const track = await this.tracksService.get(id)

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import MaintenanceConfig from "$lib/components/MaintenanceConfig/MaintenanceConfig.svelte"
   import ImportDirectoryConfig from "$lib/components/ImportDirectoryConfig/ImportDirectoryConfig.svelte"
   import NotificationTargetConfig from "$lib/components/NotificationTargetConfig/NotificationTargetConfig.svelte"
   import * as Card from "$lib/components/ui/card"
@@ -31,6 +32,16 @@
     </Card.Header>
     <Card.Content>
       <NotificationTargetConfig />
+    </Card.Content>
+  </Card.Root>
+
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>Maintenance</Card.Title>
+      <Card.Description>Reprocess tracks and images processed by an older version of StreetLens.</Card.Description>
+    </Card.Header>
+    <Card.Content>
+      <MaintenanceConfig />
     </Card.Content>
   </Card.Root>
 </div>

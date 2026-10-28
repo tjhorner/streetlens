@@ -23,6 +23,7 @@ export function extractGpsSamples(
   { maxDop = 1000 }: GpsFilterOptions = {},
 ): GpsSample[] {
   const samples: GpsSample[] = []
+  let awaitingFreshPosition = true
 
   for (const packet of packets) {
     for (const stream of streams(packet.entries)) {
@@ -33,6 +34,7 @@ export function extractGpsSamples(
       const dop = valueOf(find(stream, "GPSP"))
       const utcStart = readDate(find(stream, "GPSU"))
       if (fix === NO_FIX || (dop !== undefined && dop > maxDop) || !utcStart) {
+        awaitingFreshPosition = true
         continue
       }
 
@@ -45,6 +47,8 @@ export function extractGpsSamples(
           (value, i) => value / (scale[i] ?? scale[0]),
         )
         if (latitude === 0 && longitude === 0 && altitude === 0) return
+        if (awaitingFreshPosition && speed === 0) return
+        awaitingFreshPosition = false
 
         samples.push({
           videoTime: packet.time + index * interval,

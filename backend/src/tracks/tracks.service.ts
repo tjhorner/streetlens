@@ -7,12 +7,19 @@ import { JobType, Queue } from "bullmq"
 import { Feature } from "geojson"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { DeepPartial, Repository } from "typeorm"
+import { DeepPartial, In, LessThan, Repository } from "typeorm"
 import { TrackImportPayload } from "./import/track-import.processor"
 import { ImageImportPayload } from "./track-images/import/image-import.processor"
 import { TrackImage } from "./track-images/track-image.entity"
 import { Track } from "./track.entity"
 import { IMAGE_IMPORT_QUEUE, TRACK_IMPORT_QUEUE } from "./queues.constants"
+import { PROCESSOR_VERSION } from "./processor-version"
+
+export interface ProcessorVersionStatus {
+  currentVersion: number
+  outdatedTracks: number
+  outdatedImages: number
+}
 
 export interface TrackFilters {
   start?: Date
@@ -57,7 +64,7 @@ export class TracksService {
 
     if (filters.end) {
       query.andWhere("track.captureDate <= :end", {
-        end: filters.start,
+        end: filters.end,
       })
     }
 
@@ -108,8 +115,24 @@ export class TracksService {
     return image.filePath
   }
 
-  async createImages(images: DeepPartial<TrackImage>[]): Promise<TrackImage[]> {
-    return this.trackImagesRepository.save(images)
+  async replaceImages(
+    trackId: number,
+    images: DeepPartial<TrackImage>[],
+  ): Promise<string[]> {
+    return this.trackImagesRepository.manager.transaction(async (manager) => {
+      const repository = manager.getRepository(TrackImage)
+      const oldImages = await repository.find({
+        where: { track: { id: trackId } },
+        select: { id: true, filePath: true },
+      })
+
+      if (oldImages.length > 0) {
+        await repository.delete({ id: In(oldImages.map((image) => image.id)) })
+      }
+
+      await repository.save(images)
+      return oldImages.map((image) => image.filePath)
+    })
   }
 
   async upsert(track: DeepPartial<Track>) {
@@ -152,6 +175,50 @@ export class TracksService {
     }))
 
     return this.trackImportQueue.addBulk(jobs)
+  }
+
+  async getProcessorVersionStatus(): Promise<ProcessorVersionStatus> {
+    const outdated = { processorVersion: LessThan(PROCESSOR_VERSION) }
+
+    return {
+      currentVersion: PROCESSOR_VERSION,
+      outdatedTracks: await this.tracksRepository.countBy(outdated),
+      outdatedImages: await this.trackImagesRepository.countBy(outdated),
+    }
+  }
+
+  async reprocessOutdated() {
+    const outdatedTracks = await this.tracksRepository.findBy({
+      processorVersion: LessThan(PROCESSOR_VERSION),
+    })
+
+    const tracksWithOutdatedImages = await this.tracksRepository
+      .createQueryBuilder("track")
+      .where("track.processorVersion >= :version")
+      .andWhere(
+        `EXISTS (SELECT 1 FROM track_image WHERE track_image."trackId" = track.id AND track_image."processorVersion" < :version)`,
+      )
+      .setParameter("version", PROCESSOR_VERSION)
+      .getMany()
+
+    await this.trackImportQueue.addBulk(
+      outdatedTracks.map((track) => ({
+        name: track.id.toString(),
+        data: { filePath: track.filePath, force: true },
+      })),
+    )
+
+    await this.imageImportQueue.addBulk(
+      tracksWithOutdatedImages.map((track) => ({
+        name: track.id.toString(),
+        data: { trackId: track.id },
+      })),
+    )
+
+    return {
+      tracksQueued: outdatedTracks.length,
+      imageOnlyTracksQueued: tracksWithOutdatedImages.length,
+    }
   }
 
   @OnEvent("track.imported")

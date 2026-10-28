@@ -120,4 +120,25 @@ describe("extractGpsSamples", () => {
 
     expect(samples.map((sample) => sample.videoTime)).toEqual([3])
   })
+
+  it("skips stale zero-speed positions until the receiver reports movement", () => {
+    const stale = [47.5, -122.25, 100, 0, 0]
+    const samples = extractGpsSamples([
+      gpsPacket(0, { fix: 0, points: [stale] }),
+      gpsPacket(1, {
+        points: [
+          stale,
+          stale,
+          [47.6, -122.35, 101, 6, 6],
+          [47.6, -122.35, 101, 0, 0],
+        ],
+      }),
+    ])
+
+    // the zero-speed sample after real movement is a legit stop and is kept
+    expect(samples.map((sample) => [sample.latitude, sample.speed])).toEqual([
+      [47.6, 6],
+      [47.6, 0],
+    ])
+  })
 })

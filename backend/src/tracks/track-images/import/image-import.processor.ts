@@ -8,6 +8,7 @@ import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
 import { PROCESSOR_VERSION } from "src/tracks/processor-version"
+import { removeLegacyImageOutputs } from "src/tracks/legacy-outputs"
 import { GpmfPacket, readDeviceName, readGpmfPackets } from "src/gpmf/telemetry"
 import { extractGpsSamples } from "src/gpmf/gps"
 import {
@@ -73,13 +74,27 @@ export class ImageImportProcessor extends WorkerHost {
       }),
     )
 
-    await this.tracksService.createImages(images)
+    const replacedPaths = await this.tracksService.replaceImages(
+      track.id,
+      images,
+    )
+    await this.removeReplacedFiles(replacedPaths, imagePaths)
+    await removeLegacyImageOutputs(videoPath)
 
     this.eventEmitter.emit("track.imagesImported", {
       id: track.id,
       name: track.name,
       imageCount: images.length,
     })
+  }
+
+  private async removeReplacedFiles(oldPaths: string[], newPaths: string[]) {
+    const keep = new Set(newPaths)
+    await Promise.all(
+      oldPaths
+        .filter((oldPath) => !keep.has(oldPath))
+        .map((oldPath) => fs.rm(oldPath, { force: true })),
+    )
   }
 
   private async selectFrames(

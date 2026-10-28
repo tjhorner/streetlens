@@ -15,6 +15,7 @@ import { readGpmfPackets } from "src/gpmf/telemetry"
 import { extractGpsSamples } from "src/gpmf/gps"
 import { TRACK_IMPORT_QUEUE } from "../queues.constants"
 import { PROCESSOR_VERSION } from "../processor-version"
+import { removeLegacyTrackOutputs } from "../legacy-outputs"
 
 export interface TrackImportPayload {
   filePath: string
@@ -63,6 +64,7 @@ export class TrackImportProcessor extends WorkerHost {
     try {
       const gpxFile = await this.createGpx(job.data.filePath, job)
       gpxData = this.processGpxData(gpxFile)
+      await this.writeGpx(job.data.filePath, gpxFile)
     } catch (e: any) {
       throw new UnrecoverableError(`Failed to process GPX data: ${e.message}`)
     }
@@ -123,8 +125,13 @@ export class TrackImportProcessor extends WorkerHost {
       ],
     })
 
-    await fs.writeFile(`${filePath}.gpx`, buildGPX(gpxFile, []))
     return gpxFile
+  }
+
+  /** Only called once the track has usable data, so videos without a GPS fix don't get an empty GPX. */
+  private async writeGpx(filePath: string, gpxFile: GPXFile) {
+    await fs.writeFile(`${filePath}.gpx`, buildGPX(gpxFile, []))
+    await removeLegacyTrackOutputs(filePath)
   }
 
   private processGpxData(gpxData: GPXFile): Feature {
