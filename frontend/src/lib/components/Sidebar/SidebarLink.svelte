@@ -14,7 +14,7 @@
 
 <Tooltip.Root openDelay={0}>
   <Tooltip.Trigger class="h-fit">
-    <Button {href} variant="ghost" class={`px-2.5 ${isCurrentPage ? "bg-accent text-accent-foreground" : ""}`}>
+    <Button {href} variant="ghost" class={`px-2.5 w-full ${isCurrentPage ? "bg-accent text-accent-foreground" : ""}`}>
       <FontAwesomeIcon {icon} />
     </Button>
   </Tooltip.Trigger>
