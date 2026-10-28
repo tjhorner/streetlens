@@ -18,6 +18,7 @@ export interface Statistics {
   lastImportDate: string | null
   storage: { images: StorageStatistics; videos: StorageStatistics }
   generatedAt: string
+  dailyActivity: { date: string; distanceMeters: number }[]
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class StatisticsService {
   }
 
   private async calculate(): Promise<Statistics> {
-    const [[tracks], [images], paths] = await Promise.all([
+    const [[tracks], [images], paths, dailyActivity] = await Promise.all([
       this.dataSource.query(`
         SELECT COUNT(*) AS count,
           COALESCE(SUM(ST_Length(ST_SetSRID(geometry, 4326)::geography)), 0) AS distance,
@@ -66,6 +67,13 @@ export class StatisticsService {
         UNION ALL
         SELECT DISTINCT 'images' AS kind, "filePath" FROM track_image
       `) as Promise<{ kind: "images" | "videos"; filePath: string }[]>,
+      this.dataSource.query(`
+        SELECT TO_CHAR("captureDate", 'YYYY-MM-DD') AS date,
+          SUM(ST_Length(ST_SetSRID(geometry, 4326)::geography)) AS distance
+        FROM track
+        GROUP BY TO_CHAR("captureDate", 'YYYY-MM-DD')
+        ORDER BY date
+      `) as Promise<{ date: string; distance: string }[]>,
     ])
 
     const storage = {
@@ -117,6 +125,10 @@ export class StatisticsService {
         ? new Date(Math.max(...importDates)).toISOString()
         : null,
       storage,
+      dailyActivity: dailyActivity.map((day) => ({
+        date: day.date,
+        distanceMeters: Number(day.distance),
+      })),
       generatedAt: new Date().toISOString(),
     }
   }

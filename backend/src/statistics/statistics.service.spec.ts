@@ -28,6 +28,7 @@ describe("StatisticsService", () => {
         },
       ])
       .mockResolvedValueOnce(paths)
+      .mockResolvedValueOnce([{ date: "2026-01-01", distance: "3218.688" }])
   }
 
   beforeEach(() => {
@@ -61,6 +62,7 @@ describe("StatisticsService", () => {
       images: 3,
       distanceMeters: 3218.688,
       tracksWithImages: 1,
+      dailyActivity: [{ date: "2026-01-01", distanceMeters: 3218.688 }],
       firstCaptureDate: "2026-01-01T00:00:00.000Z",
       lastCaptureDate: "2026-02-01T00:00:00.000Z",
       lastImportDate: "2026-02-03T00:00:00.000Z",
@@ -87,6 +89,7 @@ describe("StatisticsService", () => {
       ])
       .mockResolvedValueOnce([{ count: "0", lastImportDate: null }])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
 
     expect(await service.get()).toMatchObject({
       tracks: 0,
@@ -111,12 +114,12 @@ describe("StatisticsService", () => {
     expect(service.get()).toBe(first)
     const result = await first
     expect(await service.get()).toBe(result)
-    expect(query).toHaveBeenCalledTimes(3)
+    expect(query).toHaveBeenCalledTimes(4)
 
     now.mockReturnValue(Date.parse(result.generatedAt) + 60_001)
     results()
     await service.get()
-    expect(query).toHaveBeenCalledTimes(6)
+    expect(query).toHaveBeenCalledTimes(8)
   })
 
   it("allows retrying after a failed calculation", async () => {

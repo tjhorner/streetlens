@@ -2,6 +2,7 @@
   import { onMount } from "svelte"
   import * as Card from "$lib/components/ui/card"
   import { Button } from "$lib/components/ui/button"
+  import MileageActivity from "$lib/components/MileageActivity.svelte"
 
   interface StorageStatistics {
     bytes: number
@@ -19,6 +20,7 @@
     lastImportDate: string | null
     storage: { images: StorageStatistics; videos: StorageStatistics }
     generatedAt: string
+    dailyActivity: { date: string; distanceMeters: number }[]
   }
 
   let statistics: Statistics | null = null
@@ -91,6 +93,8 @@
         </Card.Root>
       {/each}
     </div>
+
+    <MileageActivity activity={statistics.dailyActivity} />
 
     <Card.Root>
       <Card.Header>
