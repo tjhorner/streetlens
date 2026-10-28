@@ -1,4 +1,4 @@
-import { runCmdForBuffer } from "src/util/run-command"
+import { runCmdForBuffer } from "../util/run-command"
 import { GpmfEntry, parseKlv } from "./klv"
 
 export interface GpmfPacket {

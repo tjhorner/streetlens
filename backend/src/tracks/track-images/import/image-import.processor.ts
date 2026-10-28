@@ -1,7 +1,5 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq"
-import { Job } from "bullmq"
-import { runCmd } from "src/util/run-command"
-import { MapillaryImageDescription } from "./mapillary-metadata"
+import { Job, UnrecoverableError } from "bullmq"
 import path from "path"
 import * as fs from "fs/promises"
 import { TracksService } from "../../tracks.service"
@@ -9,6 +7,17 @@ import { TrackImage } from "../track-image.entity"
 import { Inject, forwardRef } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { IMAGE_IMPORT_QUEUE } from "src/tracks/queues.constants"
+import { readGpmfPackets } from "src/gpmf/telemetry"
+import { extractGpsSamples } from "src/gpmf/gps"
+import {
+  FramePosition,
+  sampleFramesByDistance,
+  segmentGpsSamples,
+} from "src/video/frame-sampling"
+import {
+  extractEquirectangularFrames,
+  readFrameTimes,
+} from "src/video/frame-extraction"
 
 export interface ImageImportPayload {
   trackId: number
@@ -29,25 +38,25 @@ export class ImageImportProcessor extends WorkerHost {
     const track = await this.tracksService.get(trackId)
     const videoPath = track.filePath
 
-    const outDir = path.join(
+    const framesDir = path.join(
       path.dirname(videoPath),
       path.basename(videoPath, path.extname(videoPath)),
+      "frames",
     )
 
-    const imageDescriptions = await this.extractFrames(videoPath, outDir)
-    const images = imageDescriptions.map(
-      (imageDescription, index): Partial<TrackImage> => ({
+    const frames = await this.selectFrames(videoPath, job)
+    const imagePaths = await this.extractFrames(videoPath, framesDir, frames)
+
+    const images = frames.map(
+      (frame, index): Partial<TrackImage> => ({
         sequenceNumber: index,
-        captureDate: this.parseMapillaryDate(imageDescription.MAPCaptureTime),
-        filePath: imageDescription.filename,
+        captureDate: frame.time,
+        filePath: imagePaths[index],
         location: {
           type: "Point",
-          coordinates: [
-            imageDescription.MAPLongitude,
-            imageDescription.MAPLatitude,
-          ],
+          coordinates: [frame.longitude, frame.latitude],
         },
-        heading: imageDescription.MAPCompassHeading?.TrueHeading,
+        heading: frame.heading,
         track,
       }),
     )
@@ -61,33 +70,49 @@ export class ImageImportProcessor extends WorkerHost {
     })
   }
 
-  private parseMapillaryDate(date: string): Date {
-    const iso = date.replace(
-      /(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{3})/,
-      "$1-$2-$3T$4:$5:$6.$7",
+  private async selectFrames(
+    videoPath: string,
+    job: Job<ImageImportPayload>,
+  ): Promise<FramePosition[]> {
+    const samples = extractGpsSamples(await readGpmfPackets(videoPath))
+    const segments = segmentGpsSamples(samples)
+    const frameTimes = await readFrameTimes(videoPath)
+    const frames = sampleFramesByDistance(segments, frameTimes)
+
+    await job.log(
+      `Selected ${frames.length} of ${frameTimes.length} frames from ${segments.length} GPS segments`,
     )
 
-    return new Date(iso)
+    if (frames.length === 0) {
+      throw new UnrecoverableError("No frames with usable GPS data")
+    }
+
+    return frames
   }
 
   private async extractFrames(
     videoPath: string,
-    outDir: string,
-  ): Promise<MapillaryImageDescription[]> {
-    await runCmd("mapillary_tools", [
-      "video_process",
-      "--video_sample_distance",
-      "10",
-      videoPath,
-      outDir,
-    ])
+    framesDir: string,
+    frames: FramePosition[],
+  ): Promise<string[]> {
+    const wipDir = `${framesDir}.wip`
+    await fs.rm(wipDir, { recursive: true, force: true })
 
-    const imageDescriptionPath = path.join(
-      outDir,
-      "mapillary_image_description.json",
-    )
+    try {
+      const wipPaths = await extractEquirectangularFrames(
+        videoPath,
+        wipDir,
+        frames,
+      )
 
-    const imageDescriptions = await fs.readFile(imageDescriptionPath, "utf-8")
-    return JSON.parse(imageDescriptions)
+      await fs.rm(framesDir, { recursive: true, force: true })
+      await fs.rename(wipDir, framesDir)
+
+      return wipPaths.map((wipPath) =>
+        path.join(framesDir, path.basename(wipPath)),
+      )
+    } finally {
+      await fs.rm(wipDir, { recursive: true, force: true })
+    }
   }
 }

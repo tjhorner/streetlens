@@ -29,6 +29,8 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/typeorm": "^10.0.2",
+    "@turf/bearing": "^7.4.0",
+    "@turf/distance": "^7.4.0",
     "@turf/helpers": "^7.1.0",
     "bullmq": "^5.13.0",
     "chokidar": "^3.6.0",

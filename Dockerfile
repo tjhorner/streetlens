@@ -29,9 +29,7 @@ RUN npm run build --workspace frontend
 
 FROM node:current-alpine
 
-RUN apk add --no-cache pipx ffmpeg git mesa-va-gallium
-ARG MAPILLARY_TOOLS_SOURCE=git+https://github.com/tjhorner/mapillary_tools
-RUN pipx install "$MAPILLARY_TOOLS_SOURCE"
+RUN apk add --no-cache pipx ffmpeg mesa-va-gallium
 RUN pipx install apprise
 ENV PATH="$PATH:/root/.local/bin"
 
