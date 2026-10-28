@@ -2,7 +2,7 @@ import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { TracksService } from "../tracks.service"
 import { Job, UnrecoverableError } from "bullmq"
 import { Feature, MultiLineString } from "typeorm"
-import { parseGPX, ramerDouglasPeucker } from "src/vendor/gpx"
+import { buildGPX, GPXFile, ramerDouglasPeucker } from "src/vendor/gpx"
 import { createReadStream } from "fs"
 import * as crypto from "crypto"
 import * as fs from "fs/promises"
@@ -11,6 +11,8 @@ import { forwardRef, Inject } from "@nestjs/common"
 import { smoothTrackSegments } from "./gpx-smooth"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { runCmd } from "src/util/run-command"
+import { readGpmfPackets } from "src/gpmf/telemetry"
+import { extractGpsSamples } from "src/gpmf/gps"
 import { TRACK_IMPORT_QUEUE } from "../queues.constants"
 
 export interface TrackImportPayload {
@@ -58,8 +60,8 @@ export class TrackImportProcessor extends WorkerHost {
 
     let gpxData: Feature
     try {
-      const gpxPath = await this.convertToGpx(job.data.filePath, job)
-      gpxData = await this.processGpxData(gpxPath)
+      const gpxFile = await this.createGpx(job.data.filePath, job)
+      gpxData = this.processGpxData(gpxFile)
     } catch (e: any) {
       throw new UnrecoverableError(`Failed to process GPX data: ${e.message}`)
     }
@@ -92,33 +94,38 @@ export class TrackImportProcessor extends WorkerHost {
     }
   }
 
-  private async convertToGpx(filePath: string, job: Job): Promise<string> {
-    const { stdout, stderr } = await runCmd("gopro2gpx", [
-      "--skip-dop",
-      "--dop-limit",
-      "1000",
-      "-s",
-      filePath,
-      filePath,
-    ])
-
+  private async createGpx(filePath: string, job: Job): Promise<GPXFile> {
+    const packets = await readGpmfPackets(filePath)
+    const samples = extractGpsSamples(packets)
     await job.log(
-      `gopro2gpx stdout:\n${stdout}\n\ngopro2gpx stderr:\n${stderr}`,
+      `Read ${samples.length} GPS samples from ${packets.length} GPMF packets`,
     )
 
-    const lastLine = stdout.trim().split("\n").pop()
-    if (lastLine.startsWith("Can't create file")) {
-      throw new Error(`Could not convert to GPX: ${lastLine}`)
-    }
+    const gpxFile = new GPXFile({
+      attributes: { creator: "StreetLens" },
+      metadata: { name: path.basename(filePath) },
+      wpt: [],
+      rte: [],
+      trk: [
+        {
+          trkseg: [
+            {
+              trkpt: samples.map((sample) => ({
+                attributes: { lat: sample.latitude, lon: sample.longitude },
+                ele: sample.altitude,
+                time: sample.time,
+              })),
+            },
+          ],
+        },
+      ],
+    })
 
-    return `${filePath}.gpx`
+    await fs.writeFile(`${filePath}.gpx`, buildGPX(gpxFile, []))
+    return gpxFile
   }
 
-  private async processGpxData(gpxPath: string): Promise<Feature> {
-    const gpxFile = await fs.readFile(gpxPath, "utf-8")
-
-    const gpxData = parseGPX(gpxFile)
-
+  private processGpxData(gpxData: GPXFile): Feature {
     const segment = gpxData.getSegment(0, 0)
     const smoothedSegments = smoothTrackSegments(segment)
 

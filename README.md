@@ -16,7 +16,7 @@ StreetLens only works with GoPro Max `.360` video files at the moment. It cannot
 
 ### Track Import
 
-StreetLens can watch a directory for new videos and automatically import them as GPS tracks with `gopro2gpx`. Once imported, you can view the track on the map along with all the others. You can filter the tracks by the date they were captured so you can easily find the most recent imagery for an area. You can also download the generated GPX file to use in other applications, for example as an overlay in JOSM.
+StreetLens can watch a directory for new videos and automatically import them as GPS tracks using the [GoPro telemetry (GPMF)](https://gopro.github.io/gpmf-parser/) embedded in each video. Once imported, you can view the track on the map along with all the others. You can filter the tracks by the date they were captured so you can easily find the most recent imagery for an area. You can also download the generated GPX file to use in other applications, for example as an overlay in JOSM.
 
 ![](screenshots/track-import.png)
 
