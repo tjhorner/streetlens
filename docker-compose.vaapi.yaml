@@ -1,0 +1,7 @@
+services:
+  streetlens:
+    image: ${STREETLENS_IMAGE:-ghcr.io/tjhorner/streetlens:main}
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    environment:
+      MAPILLARY_TOOLS_VAAPI_DEVICE: /dev/dri/renderD128

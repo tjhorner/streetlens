@@ -28,9 +28,10 @@ RUN npm ci --only=production && npm cache clean --force
 
 FROM node:current-alpine
 
-RUN apk add pipx ffmpeg git
-RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx
-RUN pipx install git+https://github.com/tjhorner/mapillary_tools
+RUN apk add --no-cache pipx ffmpeg git mesa-va-gallium
+RUN pipx install git+https://github.com/juanmcasillas/gopro2gpx@383e7fcfabc1daecf106a39f275675088c325672
+ARG MAPILLARY_TOOLS_SOURCE=git+https://github.com/tjhorner/mapillary_tools
+RUN pipx install "$MAPILLARY_TOOLS_SOURCE"
 RUN pipx install apprise
 ENV PATH="$PATH:/root/.local/bin"
 
