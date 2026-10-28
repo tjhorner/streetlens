@@ -12,17 +12,36 @@
   import type { FeatureCollection, Feature, Geometry } from "geojson"
   import TrackExplorerMap from "./TrackExplorerMap.svelte"
   import { onMount } from "svelte"
+  import { goto } from "$app/navigation"
+  import { resolve } from "$app/paths"
+
+  export let trackId: string | undefined = undefined
+  export let imageId: string | undefined = undefined
 
   let tracks: FeatureCollection<Geometry, TrackProps> = {
     type: "FeatureCollection",
     features: [],
   }
 
-  let selectedTrack: Feature<Geometry, TrackProps> | null = null
+  $: selectedTrack = tracks.features.find((track) => String(track.id) === trackId) ?? null
 
-  const filters: { [key: string]: any } = {
-    start: new Date(0),
-    end: new Date(),
+  function navigate(trackId?: string | number, imageId?: string | number) {
+    let path: string
+
+    if (trackId === undefined) {
+      path = resolve("/(explorer)")
+    } else if (imageId === undefined) {
+      path = resolve("/(explorer)/track/[trackId]", {
+        trackId: String(trackId),
+      })
+    } else {
+      path = resolve("/(explorer)/track/[trackId]/image/[imageId]", {
+        trackId: String(trackId),
+        imageId: String(imageId),
+      })
+    }
+
+    goto(path, { noScroll: true, keepFocus: true })
   }
 
   async function load() {
@@ -57,4 +76,10 @@
   })
 </script>
 
-<TrackExplorerMap {tracks} bind:selectedTrack />
+<TrackExplorerMap
+  {tracks}
+  {selectedTrack}
+  {imageId}
+  on:selectTrack={({ detail }) => navigate(detail?.id)}
+  on:selectImage={({ detail }) => navigate(selectedTrack?.id, detail ?? undefined)}
+/>

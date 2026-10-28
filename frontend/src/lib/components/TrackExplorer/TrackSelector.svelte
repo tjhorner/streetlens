@@ -19,9 +19,10 @@
   import TrackFilterControl from "./TrackFilterControl.svelte"
   import { type DateValue, CalendarDate, getLocalTimeZone, today, fromAbsolute } from "@internationalized/date"
   import * as Card from "$lib/components/ui/card"
+  import { createEventDispatcher } from "svelte"
 
   export let tracks: FeatureCollection<Geometry, TrackProps>
-  export let selectedTrack: Feature<Geometry, TrackProps> | null = null
+  const dispatch = createEventDispatcher<{ select: Feature<Geometry, TrackProps> }>()
 
   const map = mapContext().map
 
@@ -92,7 +93,7 @@
     }
 
     if (nearbyFeatures.length === 1) {
-      selectedTrack = nearbyFeatures[0]
+      dispatch("select", nearbyFeatures[0])
       return
     }
 
@@ -124,7 +125,7 @@
   function selectTrack(track: Feature<Geometry, TrackProps>) {
     tracksNearSelection = undefined
     selectionCircle = undefined
-    selectedTrack = track
+    dispatch("select", track)
   }
 
   function startOfDay(date: Date) {

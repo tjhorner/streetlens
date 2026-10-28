@@ -13,7 +13,7 @@
   import bbox from "@turf/bbox"
   import HeadingMarker from "./HeadingMarker.svelte"
   import SequenceViewer from "./SequenceViewer.svelte"
-  import { tick } from "svelte"
+  import { createEventDispatcher, tick } from "svelte"
   import TrackInfo from "./TrackInfo.svelte"
   import { fly } from "svelte/transition"
 
@@ -24,7 +24,11 @@
   }
 
   export let track: Feature<Geometry, TrackProps>
-  export let trackImages: FeatureCollection<Point, TrackImageProps> = {
+  export let imageId: string | undefined = undefined
+
+  const dispatch = createEventDispatcher<{ selectImage: number | string | undefined }>()
+  let loadedTrackId: string | number | undefined
+  let trackImages: FeatureCollection<Point, TrackImageProps> = {
     type: "FeatureCollection",
     features: [],
   }
@@ -38,23 +42,29 @@
   let cameraYaw = 0
 
   async function loadImages() {
+    const requestedTrackId = track.id
     const response = await fetch(
-      `/api/tracks/${track.id}/images?format=geojson`
+      `/api/tracks/${requestedTrackId}/images?format=geojson`
     )
-    trackImages = await response.json()
+    const images = await response.json()
+    if (track.id !== requestedTrackId) return
+    trackImages = images
+    loadedTrackId = requestedTrackId
   }
 
   function onSelectImage(event: CustomEvent<LayerClickInfo>) {
     const features = event.detail.features
     if (features.length === 0) {
-      selectedImage = undefined
+      dispatch("selectImage", undefined)
       return
     }
 
-    selectImage(features[0].id as number)
+    dispatch("selectImage", features[0].id)
   }
 
-  async function selectImage(id?: number) {
+  async function selectImage(id?: string) {
+    const image = trackImages.features.find((image) => String(image.id) === id)
+    if (selectedImage === image) return
     if (selectedImage) {
       $map?.setFeatureState(
         { source: "trackImages", id: selectedImage.id },
@@ -62,21 +72,22 @@
       )
     }
 
-    if (!id) {
+    if (!image) {
       selectedImage = undefined
       fixPadding() // ughhhhh
       flyToTrack()
       return
     }
 
-    const index = trackImages.features.findIndex((image) => image.id === id)
-    selectedImage = trackImages.features[index]
-    $map?.setFeatureState({ source: "trackImages", id }, { selected: true })
+    const index = trackImages.features.indexOf(image)
+    selectedImage = image
+    $map?.setFeatureState({ source: "trackImages", id: image.id }, { selected: true })
 
     hasNextImage = index < trackImages.features.length - 1
     hasPreviousImage = index > 0
 
     await tick()
+    if (selectedImage !== image) return
 
     $map?.easeTo({
       center: selectedImage.geometry.coordinates as [number, number],
@@ -109,7 +120,7 @@
       return
     }
 
-    selectImage(trackImages.features[newIndex].id as number)
+    dispatch("selectImage", trackImages.features[newIndex].id)
   }
 
   function fixPadding() {
@@ -122,6 +133,7 @@
   }
 
   $: track && loadImages()
+  $: if (loadedTrackId === track.id) selectImage(imageId)
 
   $: heading = parseFloat(selectedImage?.properties?.heading ?? "0") - cameraYaw
   $: selectedImageCoordinates = (selectedImage?.geometry as Point)
@@ -138,7 +150,7 @@
       hasPrevious={hasPreviousImage}
       on:next={() => moveToImage(1)}
       on:previous={() => moveToImage(-1)}
-      on:close={() => selectImage(undefined)}
+      on:close={() => dispatch("selectImage", undefined)}
       on:yawChange={({ detail }) => (cameraYaw = detail)}
     />
   </Control>

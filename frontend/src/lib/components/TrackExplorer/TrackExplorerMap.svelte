@@ -15,9 +15,16 @@
   import { fly } from "svelte/transition"
   import GoToCoordsControl from "./GoToCoordsControl.svelte"
   import { mode } from "mode-watcher"
+  import { createEventDispatcher } from "svelte"
 
   export let tracks: FeatureCollection<Geometry, TrackProps>
   export let selectedTrack: Feature<Geometry, TrackProps> | null = null
+  export let imageId: string | undefined = undefined
+
+  const dispatch = createEventDispatcher<{
+    selectTrack: Feature<Geometry, TrackProps> | null
+    selectImage: number | string | undefined
+  }>()
 
   let map: maplibregl.Map
   let initialZoom = true
@@ -58,26 +65,26 @@
   </Control>
 
   {#if selectedTrack === null && tracks.features.length > 0}
-    <TrackSelector {tracks} bind:selectedTrack />
+    <TrackSelector {tracks} on:select={({ detail }) => dispatch("selectTrack", detail)} />
   {:else if selectedTrack !== null}
     <Control position="top-left">
       <div transition:fly={{ x: "-100%" }}>
         <ControlGroup>
-          <ControlButton class="text-black" on:click={() => (selectedTrack = null)}>
+          <ControlButton class="text-black" title="Back to Tracks" on:click={() => dispatch("selectTrack", null)}>
             <FontAwesomeIcon icon={faArrowLeft} />
           </ControlButton>
         </ControlGroup>
       </div>
     </Control>
 
-    <TrackViewer track={selectedTrack} />
+    <TrackViewer track={selectedTrack} {imageId} on:selectImage />
   {/if}
 
   <slot />
 </MapLibre>
 
 <svelte:window
-  on:keydown={(e) => e.key === "Escape" && (selectedTrack = null)}
+  on:keydown={(e) => e.key === "Escape" && dispatch("selectTrack", null)}
 />
 
 <style>
